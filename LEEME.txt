@@ -1,0 +1,23 @@
+AGENDA DE ORADORES — Versión para publicar en GitHub Pages
+=============================================================
+
+Esta carpeta es idéntica a la versión local de Windows, con una
+diferencia clave: aquí NO hay datos reales de personas guardados en
+el código (arranca vacía a propósito), para poder subirla a un
+repositorio PÚBLICO de GitHub sin exponer nombres ni teléfonos.
+
+CÓMO CARGAR TUS DATOS DESPUÉS DE PUBLICARLA
+--------------------------------------------
+1. Abre la web ya publicada (la URL que te dará GitHub Pages).
+2. Pulsa "Abrir" (arriba a la derecha).
+3. Selecciona el archivo .json con tu copia de seguridad (el mismo
+   que exportas desde Claude con "Guardar", o desde tu versión local
+   de Windows).
+4. Tus datos se cargan y se guardan solo en el navegador de ESE
+   dispositivo (localStorage). GitHub nunca los recibe ni los ve.
+
+Repite el paso "Abrir" en cada dispositivo/navegador donde quieras
+consultar la agenda.
+
+Sigue las instrucciones que Claude te dio paso a paso para subir esto
+a GitHub Pages.

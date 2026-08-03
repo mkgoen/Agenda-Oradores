@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agenda de Oradores</title>
+
+  <!--
+    Esta app se abre con doble clic (sin instalar nada, sin servidor).
+    El JSX (las etiquetas tipo <div>...</div> dentro del código) ya
+    viene precompilado a JavaScript normal en la carpeta js/ -- por eso
+    NO hace falta Babel aqui. Esto es importante: cargar archivos con
+    Babel en el navegador (type="text/babel" + src) SI esta bloqueado
+    por el navegador al abrir un archivo con file://, asi que en vez
+    de eso los .js ya estan traducidos de antemano y se cargan como
+    scripts normales, que si funcionan sin problema con file://.
+
+    Solo React, ReactDOM y Tailwind siguen viniendo de internet (CDN),
+    ya precompilados -- por eso la primera vez que abras el archivo
+    necesitas conexion a internet (luego el navegador los cachea).
+  -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+
+  <style>
+    html, body, #root { height: 100%; margin: 0; }
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!--
+    Cada archivo se carga como script clasico, en este orden exacto:
+    primero las piezas basicas (iconos, constantes, datos), luego los
+    componentes que las usan, y al final App y el arranque. Todos
+    comparten el mismo ambito global (como si fuera un unico archivo
+    grande), asi que un archivo puede usar tranquilamente una funcion
+    o componente definido en uno anterior.
+  -->
+  <script src="js/01-icons.js"></script>
+  <script src="js/02-constants.js"></script>
+  <script src="js/03-seed-data.js"></script>
+  <script src="js/04-warnings.js"></script>
+  <script src="js/05-calendar.js"></script>
+  <script src="js/06-event-modal.js"></script>
+  <script src="js/07-speakers-logic.js"></script>
+  <script src="js/08-speakers-view.js"></script>
+  <script src="js/09-bosquejos.js"></script>
+  <script src="js/10-reminder-panel.js"></script>
+  <script src="js/11-file-storage.js"></script>
+  <script src="js/12-app.js"></script>
+  <script src="js/13-main.js"></script>
+</body>
+</html>
