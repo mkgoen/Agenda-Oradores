@@ -57,8 +57,11 @@ function relativeAge(dateStr) {
   else text = `${abs} d\xEDa${abs !== 1 ? "s" : ""}`;
   return future ? `dentro de ${text}` : `hace ${text}`;
 }
-function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable }) {
+function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable, bosquejoTitles, setBosquejoTitles, dbExpanded, setDbExpanded }) {
   const [newUnavailable, setNewUnavailable] = useState("");
+  const [dbSearch, setDbSearch] = useState("");
+  const dbNums = useMemo(() => Array.from({ length: 194 }, (_, i) => String(i + 1)), []);
+  const dbFiltered = dbSearch.trim() ? dbNums.filter((n) => n === dbSearch.trim() || (bosquejoTitles[n] || "").toLowerCase().includes(dbSearch.trim().toLowerCase())) : dbNums;
   const unavailableSet = useMemo(() => new Set(unavailable), [unavailable]);
   const addUnavailable = () => {
     const n = newUnavailable.trim();
@@ -93,5 +96,29 @@ function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable }) {
       placeholder: "N\xBA de bosquejo",
       className: "ipt text-xs"
     }
-  ), /* @__PURE__ */ React.createElement("button", { onClick: addUnavailable, className: "px-3 rounded-md text-xs font-medium flex-shrink-0", style: { background: BOSQUEJO_COLORS.unavailable + "22", color: BOSQUEJO_COLORS.unavailable } }, "A\xF1adir")))), results.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border p-8 text-center text-sm", style: { borderColor: COLORS.line, color: COLORS.inkSoft } }, "Escribe uno o varios n\xFAmeros de discurso para consultar cu\xE1ndo se dieron por \xFAltima vez.") : /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5" }, results.map((r) => /* @__PURE__ */ React.createElement("div", { key: r.num, className: "rounded-xl border p-3.5", style: { borderColor: COLORS.line, background: COLORS.surface, borderLeft: `4px solid ${BOSQUEJO_COLORS[r.status]}` } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-lg font-semibold", style: { fontFamily: "IBM Plex Mono, monospace", color: COLORS.ink } }, "n\xBA ", r.num), /* @__PURE__ */ React.createElement("span", { className: "text-[10px] px-2 py-0.5 rounded-full font-medium", style: { background: BOSQUEJO_COLORS[r.status] + "22", color: BOSQUEJO_COLORS[r.status] } }, BOSQUEJO_LABELS[r.status])), r.status === "unavailable" ? /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Marcado manualmente como no disponible.") : r.date ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: COLORS.ink } }, r.speaker), /* @__PURE__ */ React.createElement("div", { className: "text-[11px]", style: { color: COLORS.inkSoft } }, formatDate(r.date), " \xB7 ", relativeAge(r.date)), /* @__PURE__ */ React.createElement("div", { className: "text-[11px] flex items-center gap-1 mt-0.5", style: { color: COLORS.inkSoft } }, /* @__PURE__ */ React.createElement(MapPin, { size: 10 }), " ", r.place)) : /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Ning\xFAn visitante lo ha dado todav\xEDa.")))));
+  ), /* @__PURE__ */ React.createElement("button", { onClick: addUnavailable, className: "px-3 rounded-md text-xs font-medium flex-shrink-0", style: { background: BOSQUEJO_COLORS.unavailable + "22", color: BOSQUEJO_COLORS.unavailable } }, "A\xF1adir")))), results.length === 0 ? /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border p-8 text-center text-sm", style: { borderColor: COLORS.line, color: COLORS.inkSoft } }, "Escribe uno o varios n\xFAmeros de discurso para consultar cu\xE1ndo se dieron por \xFAltima vez.") : /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5" }, results.map((r) => /* @__PURE__ */ React.createElement("div", { key: r.num, className: "rounded-xl border p-3.5", style: { borderColor: COLORS.line, background: COLORS.surface, borderLeft: `4px solid ${BOSQUEJO_COLORS[r.status]}` } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-lg font-semibold", style: { fontFamily: "IBM Plex Mono, monospace", color: COLORS.ink } }, "n\xBA ", r.num), /* @__PURE__ */ React.createElement("span", { className: "text-[10px] px-2 py-0.5 rounded-full font-medium", style: { background: BOSQUEJO_COLORS[r.status] + "22", color: BOSQUEJO_COLORS[r.status] } }, BOSQUEJO_LABELS[r.status])), bosquejoTitles?.[r.num] && /* @__PURE__ */ React.createElement("div", { className: "text-[11px] italic mb-1", style: { color: COLORS.inkSoft } }, bosquejoTitles[r.num]), r.status === "unavailable" ? /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Marcado manualmente como no disponible.") : r.date ? /* @__PURE__ */ React.createElement(React.Fragment, null, /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: COLORS.ink } }, r.speaker), /* @__PURE__ */ React.createElement("div", { className: "text-[11px]", style: { color: COLORS.inkSoft } }, formatDate(r.date), " \xB7 ", relativeAge(r.date)), /* @__PURE__ */ React.createElement("div", { className: "text-[11px] flex items-center gap-1 mt-0.5", style: { color: COLORS.inkSoft } }, /* @__PURE__ */ React.createElement(MapPin, { size: 10 }), " ", r.place)) : /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Ning\xFAn visitante lo ha dado todav\xEDa.")))), /* @__PURE__ */ React.createElement(
+    "div",
+    {
+      className: "rounded-xl border cursor-pointer mt-6",
+      onClick: () => setDbExpanded((e) => !e),
+      style: { borderColor: COLORS.line, background: COLORS.surface }
+    },
+    /* @__PURE__ */ React.createElement("div", { className: "p-4 flex items-center justify-between flex-wrap gap-3" }, /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "text-sm font-medium", style: { color: COLORS.ink } }, "Base de datos de bosquejos"), /* @__PURE__ */ React.createElement("div", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Asocia un t\xEDtulo a cada n\xFAmero (1-194) para que se autocomplete en eventos e invitaciones.")), /* @__PURE__ */ React.createElement(ChevronRight, { size: 18, style: { color: COLORS.inkSoft, flexShrink: 0, transform: dbExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.3s ease" } }))
+  ), /* @__PURE__ */ React.createElement("div", { className: "expand-wrap " + (dbExpanded ? "sd-expanded" : "sd-collapsed") }, /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border p-4 mt-2.5", style: { borderColor: COLORS.line, background: COLORS.surface }, onClick: (e) => e.stopPropagation() }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2 px-2 py-1.5 rounded-lg mb-3", style: { background: COLORS.bg, border: `1px solid ${COLORS.line}` } }, /* @__PURE__ */ React.createElement(Search, { size: 14, style: { color: COLORS.inkSoft } }), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      value: dbSearch,
+      onChange: (e) => setDbSearch(e.target.value),
+      placeholder: "Buscar por n\xFAmero o t\xEDtulo\u2026",
+      className: "bg-transparent text-sm outline-none flex-1"
+    }
+  )), /* @__PURE__ */ React.createElement("div", { className: "space-y-1.5 overflow-y-auto", style: { maxHeight: 900 } }, dbFiltered.map((n) => /* @__PURE__ */ React.createElement("div", { key: n, className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-xs font-mono flex-shrink-0", style: { width: 34, color: COLORS.teal, fontWeight: 600 } }, n), /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      value: bosquejoTitles[n] || "",
+      onChange: (e) => setBosquejoTitles((prev) => ({ ...prev, [n]: e.target.value })),
+      placeholder: "T\xEDtulo del bosquejo\u2026",
+      className: "ipt text-xs"
+    }
+  ))), dbFiltered.length === 0 && /* @__PURE__ */ React.createElement("div", { className: "text-xs text-center py-6", style: { color: COLORS.inkSoft } }, "Sin coincidencias.")))));
 }

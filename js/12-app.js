@@ -20,6 +20,8 @@ function App() {
   const [speakerSortDir, setSpeakerSortDir] = useState("asc");
   const [bosquejosRaw, setBosquejosRaw] = useState("");
   const [unavailableBosquejos, setUnavailableBosquejos] = useState([]);
+  const [bosquejoDbExpanded, setBosquejoDbExpanded] = useState(false);
+  const [bosquejoTitles, setBosquejoTitles] = useState({});
   useEffect(() => {
     const d = loadFromLocalStorage();
     if (d) {
@@ -30,6 +32,7 @@ function App() {
       setTheme(d.theme === "dark" ? "dark" : "light");
       setWeekendFilter(d.weekendFilter === "sat" || d.weekendFilter === "sun" ? d.weekendFilter : "both");
       setUnavailableBosquejos(d.unavailableBosquejos || []);
+      setBosquejoTitles(d.bosquejoTitles || {});
     } else {
       const merged = mergeExtraImport(EXCEL_IMPORT_DATA.speakers, EXCEL_IMPORT_DATA.events, EXTRA_IMPORT_2023_2024);
       setSpeakers(merged.speakers);
@@ -37,6 +40,7 @@ function App() {
       setStatuses(EXCEL_IMPORT_DATA.statuses);
       setReminders(EXCEL_IMPORT_DATA.reminders);
       setUnavailableBosquejos(EXCEL_IMPORT_DATA.unavailableBosquejos || []);
+      setBosquejoTitles(EXCEL_IMPORT_DATA.bosquejoTitles || {});
       setTheme(EXCEL_IMPORT_DATA.theme === "dark" ? "dark" : "light");
       setWeekendFilter(EXCEL_IMPORT_DATA.weekendFilter === "sat" || EXCEL_IMPORT_DATA.weekendFilter === "sun" ? EXCEL_IMPORT_DATA.weekendFilter : "both");
     }
@@ -44,10 +48,10 @@ function App() {
   }, []);
   useEffect(() => {
     if (!loaded) return;
-    const ok = saveToLocalStorage({ speakers, events, statuses, reminders, theme, unavailableBosquejos, weekendFilter });
+    const ok = saveToLocalStorage({ speakers, events, statuses, reminders, theme, unavailableBosquejos, weekendFilter, bosquejoTitles });
     setSaveStatus(ok ? "saved" : "error");
     if (!ok) setSaveError("No se pudo guardar en este navegador.");
-  }, [speakers, events, statuses, reminders, theme, unavailableBosquejos, weekendFilter, loaded]);
+  }, [speakers, events, statuses, reminders, theme, unavailableBosquejos, weekendFilter, bosquejoTitles, loaded]);
   const handleOpenFile = () => {
     openAgendaFile().then((d) => {
       setSpeakers(d.speakers || []);
@@ -57,6 +61,7 @@ function App() {
       setTheme(d.theme === "dark" ? "dark" : "light");
       setWeekendFilter(d.weekendFilter === "sat" || d.weekendFilter === "sun" ? d.weekendFilter : "both");
       setUnavailableBosquejos(d.unavailableBosquejos || []);
+      setBosquejoTitles(d.bosquejoTitles || {});
       setFileMessage("Archivo cargado \u2713");
       setTimeout(() => setFileMessage(""), 2500);
     }).catch((e) => {
@@ -68,7 +73,7 @@ function App() {
     const today = /* @__PURE__ */ new Date();
     const stamp = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
     saveAgendaFile(
-      { speakers, events, statuses, reminders, theme, unavailableBosquejos, weekendFilter },
+      { speakers, events, statuses, reminders, theme, unavailableBosquejos, weekendFilter, bosquejoTitles },
       `agenda-oradores-${stamp}.json`
     );
     setFileMessage("Archivo guardado \u2713");
@@ -89,7 +94,7 @@ function App() {
       speaker = { id: uid(), name: form.speakerName.trim(), phone: form.phone, origin: form.type === "visita" ? form.place : "Local", isLocal: form.type === "salida", blockedMonths: [] };
       nextSpeakers = [...speakers, speaker];
     }
-    if (speaker && form.type === "salida" && form.date) {
+    if (speaker && speaker.isLocal && form.date) {
       const period = ym(form.date);
       if (!speaker.blockedMonths.includes(period)) {
         const updatedSpeaker = { ...speaker, blockedMonths: [...speaker.blockedMonths, period] };
@@ -98,14 +103,40 @@ function App() {
       }
     }
     const eventObj = { ...form, id: modal.initial ? modal.initial.id : uid(), speakerId: speaker ? speaker.id : null };
+    if (modal.initial) {
+      const oldSpeakerId = modal.initial.speakerId;
+      const oldMonth = modal.initial.date ? ym(modal.initial.date) : null;
+      const changed = oldSpeakerId !== eventObj.speakerId || oldMonth !== ym(eventObj.date);
+      if (changed && oldSpeakerId && oldMonth) {
+        const oldSpeaker = nextSpeakers.find((s) => s.id === oldSpeakerId);
+        if (oldSpeaker && oldSpeaker.isLocal && oldSpeaker.blockedMonths.includes(oldMonth)) {
+          const stillHasEvent = events.some((ev) => ev.id !== eventObj.id && ev.speakerId === oldSpeakerId && ym(ev.date) === oldMonth);
+          if (!stillHasEvent) {
+            nextSpeakers = nextSpeakers.map((s) => s.id === oldSpeakerId ? { ...s, blockedMonths: s.blockedMonths.filter((m) => m !== oldMonth) } : s);
+          }
+        }
+      }
+    }
     setSpeakers(nextSpeakers);
     setEvents((evs) => modal.initial ? evs.map((e) => e.id === eventObj.id ? eventObj : e) : [...evs, eventObj]);
     setModal(null);
   };
   const deleteEvent = (id) => {
+    const ev = events.find((e) => e.id === id);
     setEvents((evs) => evs.filter((e) => e.id !== id));
+    if (ev && ev.speakerId && ev.date) {
+      const month = ym(ev.date);
+      const speaker = speakers.find((s) => s.id === ev.speakerId);
+      if (speaker && speaker.isLocal && speaker.blockedMonths.includes(month)) {
+        const stillHasEvent = events.some((e) => e.id !== id && e.speakerId === ev.speakerId && ym(e.date) === month);
+        if (!stillHasEvent) {
+          setSpeakers((ss) => ss.map((s) => s.id === speaker.id ? { ...s, blockedMonths: s.blockedMonths.filter((m) => m !== month) } : s));
+        }
+      }
+    }
     setModal(null);
   };
+  const deleteSpeaker = (id) => setSpeakers((ss) => ss.filter((s) => s.id !== id));
   const pendingReminders = reminders.filter((r) => !r.done).length;
   const navItems = [
     { key: "conjunta", label: "Vista conjunta", icon: LayoutGrid },
@@ -129,6 +160,37 @@ function App() {
         }
         .nav-scroll { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; touch-action: pan-x; overscroll-behavior-y: none; }
         .nav-scroll::-webkit-scrollbar { display: none; }
+
+        /* Zoom ligero + resplandor inferior al pasar el rat\xF3n, reutilizado
+           en pesta\xF1as, celdas del calendario, tarjetas de orador y el
+           navegador de a\xF1os. */
+        .hg-hover { position: relative; transition: transform 0.25s ease; }
+        .hg-hover::after {
+          content: "";
+          position: absolute;
+          left: 10%;
+          right: 10%;
+          bottom: 0;
+          height: 55%;
+          background: radial-gradient(ellipse at bottom, ${COLORS.teal}55 0%, transparent 75%);
+          opacity: 0;
+          transition: opacity 0.25s ease;
+          pointer-events: none;
+          border-radius: inherit;
+          z-index: -1;
+        }
+        .hg-hover:hover { transform: scale(1.035); }
+        .hg-hover:hover::after { opacity: 1; }
+
+        /* Igual que hg-hover pero sin el resplandor inferior, solo el zoom. */
+        .hg-zoom { transition: transform 0.25s ease; }
+        .hg-zoom:hover { transform: scale(1.035); }
+
+        /* Expandir/replegar suave, reutilizado por el detalle de orador
+           y la base de datos de bosquejos. */
+        .expand-wrap { overflow: hidden; transition: max-height 0.32s ease, opacity 0.28s ease, transform 0.32s ease; }
+        .expand-wrap.sd-collapsed { max-height: 0; opacity: 0; transform: translateY(-6px); }
+        .expand-wrap.sd-expanded { max-height: 2400px; opacity: 1; transform: translateY(0); }
       `), /* @__PURE__ */ React.createElement("header", { className: "px-6 pt-6 pb-3 flex items-center justify-between relative flex-shrink-0 flex-wrap gap-2" }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2.5" }, /* @__PURE__ */ React.createElement(CalendarDays, { size: 22, style: { color: COLORS.teal } }), /* @__PURE__ */ React.createElement("h1", { className: "text-xl font-semibold", style: { fontFamily: "Fraunces, serif" } }, "Agenda de Oradores"), saveStatus === "saved" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px]", style: { color: "#2F8F4E" } }, "Guardado \u2713"), saveStatus === "error" && /* @__PURE__ */ React.createElement("span", { className: "text-[11px] px-2 py-0.5 rounded-full", style: { background: "#B0453B22", color: "#B0453B" } }, "Error al guardar"), fileMessage && /* @__PURE__ */ React.createElement("span", { className: "text-[11px]", style: { color: COLORS.teal } }, fileMessage)), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3" }, /* @__PURE__ */ React.createElement(
     "button",
     {
@@ -142,7 +204,7 @@ function App() {
     {
       key,
       onClick: () => setView(key),
-      className: "flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition flex-shrink-0 whitespace-nowrap",
+      className: "hg-hover flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium border-b-2 -mb-px transition flex-shrink-0 whitespace-nowrap",
       style: { borderColor: view === key ? COLORS.teal : "transparent", color: view === key ? COLORS.teal : COLORS.inkSoft }
     },
     /* @__PURE__ */ React.createElement(Icon, { size: 14 }),
@@ -165,9 +227,24 @@ function App() {
       sortMode: speakerSortMode,
       setSortMode: setSpeakerSortMode,
       sortDir: speakerSortDir,
-      setSortDir: setSpeakerSortDir
+      setSortDir: setSpeakerSortDir,
+      deleteSpeaker,
+      bosquejoTitles
     }
-  ) : view === "bosquejos" ? /* @__PURE__ */ React.createElement(BosquejosView, { events, raw: bosquejosRaw, setRaw: setBosquejosRaw, unavailable: unavailableBosquejos, setUnavailable: setUnavailableBosquejos }) : /* @__PURE__ */ React.createElement(
+  ) : view === "bosquejos" ? /* @__PURE__ */ React.createElement(
+    BosquejosView,
+    {
+      events,
+      raw: bosquejosRaw,
+      setRaw: setBosquejosRaw,
+      unavailable: unavailableBosquejos,
+      setUnavailable: setUnavailableBosquejos,
+      bosquejoTitles,
+      setBosquejoTitles,
+      dbExpanded: bosquejoDbExpanded,
+      setDbExpanded: setBosquejoDbExpanded
+    }
+  ) : /* @__PURE__ */ React.createElement(
     YearView,
     {
       year,
@@ -191,6 +268,7 @@ function App() {
       events,
       statuses,
       unavailableBosquejos,
+      bosquejoTitles,
       onClose: () => setModal(null),
       onSave: saveEvent,
       onDelete: deleteEvent,
