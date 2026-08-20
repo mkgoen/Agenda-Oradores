@@ -1,7 +1,7 @@
 /* ---------------------------------------------------------------
    Event modal
 ----------------------------------------------------------------*/
-function EventModal({ initial, prefillDate, defaultType, speakers, events, statuses, unavailableBosquejos, onClose, onSave, onDelete, onAddStatus, onDeleteStatus }) {
+function EventModal({ initial, prefillDate, defaultType, speakers, events, statuses, unavailableBosquejos, bosquejoTitles, onClose, onSave, onDelete, onAddStatus, onDeleteStatus }) {
   const [form, setForm] = useState(() => initial ? { ...initial } : {
     date: prefillDate || "", place: "", title: "", speechNumber: "", phone: "",
     coordinator: "", type: defaultType || "visita", speakerName: "", status: statuses[0].name, notes: "",
@@ -16,6 +16,16 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
   const suggestions = matchingSpeakers.slice(0, 8);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  // Autocompleta el título a partir de la base de datos de bosquejos
+  // cuando se escribe un número que ya tiene título asociado y el campo
+  // de título todavía está vacío (para no pisar un título ya escrito).
+  useEffect(() => {
+    const n = String(form.speechNumber || "").trim();
+    if (n && bosquejoTitles && bosquejoTitles[n] && !form.title) {
+      set("title", bosquejoTitles[n]);
+    }
+  }, [form.speechNumber]);
 
   const handleDeleteStatus = (name) => {
     if (statuses.length <= 1) return;
@@ -43,15 +53,15 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
 
         <div className="p-5 space-y-3 overflow-y-auto flex-1 min-h-0">
           <div className="flex gap-2">
-            {["visita", "salida"].map(t => (
+            {["visita", "salida", "evento"].map(t => (
               <button key={t} onClick={() => set("type", t)}
-                className="flex-1 py-2 rounded-lg text-sm font-medium border transition"
+                className="flex-1 py-2 rounded-lg text-xs font-medium border transition"
                 style={{
                   borderColor: form.type === t ? COLORS.teal : COLORS.line,
                   background: form.type === t ? COLORS.tealSoft : "transparent",
                   color: form.type === t ? COLORS.teal : COLORS.inkSoft,
                 }}>
-                {t === "visita" ? "Visita (orador de otro lugar)" : "Salida (orador local)"}
+                {t === "visita" ? "Visita" : t === "salida" ? "Salida" : "Evento"}
               </button>
             ))}
           </div>
@@ -60,66 +70,111 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
             <input type="date" value={form.date} onChange={e => set("date", e.target.value)} className="ipt" />
           </Field>
 
-          <Field label={form.type === "visita" ? "Lugar de origen del orador" : "Lugar de destino"}>
-            <input value={form.place} onChange={e => set("place", e.target.value)} className="ipt" placeholder="Congregación / salón" />
-          </Field>
-
-          <Field label="Orador">
-            <div className="relative">
-              <input
-                value={form.speakerName}
-                onChange={e => { set("speakerName", e.target.value); setSpeakerDropdownOpen(true); setHighlightIndex(-1); }}
-                onFocus={() => { if (suggestions.length > 0) setSpeakerDropdownOpen(true); }}
-                onBlur={() => setTimeout(() => setSpeakerDropdownOpen(false), 120)}
-                onKeyDown={e => {
-                  if (!speakerDropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp") && suggestions.length > 0) {
-                    e.preventDefault(); setSpeakerDropdownOpen(true); setHighlightIndex(0); return;
-                  }
-                  if (e.key === "ArrowDown") { e.preventDefault(); setHighlightIndex(i => Math.min(i + 1, suggestions.length - 1)); }
-                  else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightIndex(i => Math.max(i - 1, 0)); }
-                  else if (e.key === "Enter") {
-                    if (speakerDropdownOpen && highlightIndex >= 0 && suggestions[highlightIndex]) {
-                      e.preventDefault();
-                      set("speakerName", suggestions[highlightIndex].name);
-                      setSpeakerDropdownOpen(false); setHighlightIndex(-1);
+          {form.type === "evento" ? (
+            <Field label="Nombre">
+              <div className="relative">
+                <input
+                  value={form.speakerName}
+                  onChange={e => { set("speakerName", e.target.value); setSpeakerDropdownOpen(true); setHighlightIndex(-1); }}
+                  onFocus={() => { if (suggestions.length > 0) setSpeakerDropdownOpen(true); }}
+                  onBlur={() => setTimeout(() => setSpeakerDropdownOpen(false), 120)}
+                  onKeyDown={e => {
+                    if (!speakerDropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp") && suggestions.length > 0) {
+                      e.preventDefault(); setSpeakerDropdownOpen(true); setHighlightIndex(0); return;
                     }
-                  } else if (e.key === "Escape") { setSpeakerDropdownOpen(false); }
-                }}
-                className="ipt" placeholder="Nombre del orador" autoComplete="off"
-              />
-              {speakerDropdownOpen && suggestions.length > 0 && (
-                <div className="absolute left-0 right-0 mt-1 rounded-lg border shadow-lg overflow-hidden z-20" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
-                  {suggestions.map((s, i) => (
-                    <button key={s.id} type="button"
-                      onMouseDown={e => e.preventDefault()}
-                      onClick={() => { set("speakerName", s.name); setSpeakerDropdownOpen(false); setHighlightIndex(-1); }}
-                      className="w-full text-left px-3 py-1.5 text-xs"
-                      style={{ background: i === highlightIndex ? COLORS.tealSoft : "transparent", color: COLORS.ink }}>
-                      {s.name} <span style={{ color: COLORS.inkSoft }}>· {s.origin}</span>
-                    </button>
-                  ))}
+                    if (e.key === "ArrowDown") { e.preventDefault(); setHighlightIndex(i => Math.min(i + 1, suggestions.length - 1)); }
+                    else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightIndex(i => Math.max(i - 1, 0)); }
+                    else if (e.key === "Enter") {
+                      if (speakerDropdownOpen && highlightIndex >= 0 && suggestions[highlightIndex]) {
+                        e.preventDefault();
+                        set("speakerName", suggestions[highlightIndex].name);
+                        setSpeakerDropdownOpen(false); setHighlightIndex(-1);
+                      }
+                    } else if (e.key === "Escape") { setSpeakerDropdownOpen(false); }
+                  }}
+                  className="ipt" placeholder="Nombre" autoComplete="off"
+                />
+                {speakerDropdownOpen && suggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 mt-1 rounded-lg border shadow-lg overflow-hidden z-20" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
+                    {suggestions.map((s, i) => (
+                      <button key={s.id} type="button"
+                        onMouseDown={e => e.preventDefault()}
+                        onClick={() => { set("speakerName", s.name); setSpeakerDropdownOpen(false); setHighlightIndex(-1); }}
+                        className="w-full text-left px-3 py-1.5 text-xs"
+                        style={{ background: i === highlightIndex ? COLORS.tealSoft : "transparent", color: COLORS.ink }}>
+                        {s.name} <span style={{ color: COLORS.inkSoft }}>· {s.origin}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Field>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Orador">
+                <div className="relative">
+                  <input
+                    value={form.speakerName}
+                    onChange={e => { set("speakerName", e.target.value); setSpeakerDropdownOpen(true); setHighlightIndex(-1); }}
+                    onFocus={() => { if (suggestions.length > 0) setSpeakerDropdownOpen(true); }}
+                    onBlur={() => setTimeout(() => setSpeakerDropdownOpen(false), 120)}
+                    onKeyDown={e => {
+                      if (!speakerDropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp") && suggestions.length > 0) {
+                        e.preventDefault(); setSpeakerDropdownOpen(true); setHighlightIndex(0); return;
+                      }
+                      if (e.key === "ArrowDown") { e.preventDefault(); setHighlightIndex(i => Math.min(i + 1, suggestions.length - 1)); }
+                      else if (e.key === "ArrowUp") { e.preventDefault(); setHighlightIndex(i => Math.max(i - 1, 0)); }
+                      else if (e.key === "Enter") {
+                        if (speakerDropdownOpen && highlightIndex >= 0 && suggestions[highlightIndex]) {
+                          e.preventDefault();
+                          set("speakerName", suggestions[highlightIndex].name);
+                          setSpeakerDropdownOpen(false); setHighlightIndex(-1);
+                        }
+                      } else if (e.key === "Escape") { setSpeakerDropdownOpen(false); }
+                    }}
+                    className="ipt" placeholder="Nombre del orador" autoComplete="off"
+                  />
+                  {speakerDropdownOpen && suggestions.length > 0 && (
+                    <div className="absolute left-0 right-0 mt-1 rounded-lg border shadow-lg overflow-hidden z-20" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
+                      {suggestions.map((s, i) => (
+                        <button key={s.id} type="button"
+                          onMouseDown={e => e.preventDefault()}
+                          onClick={() => { set("speakerName", s.name); setSpeakerDropdownOpen(false); setHighlightIndex(-1); }}
+                          className="w-full text-left px-3 py-1.5 text-xs"
+                          style={{ background: i === highlightIndex ? COLORS.tealSoft : "transparent", color: COLORS.ink }}>
+                          {s.name} <span style={{ color: COLORS.inkSoft }}>· {s.origin}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+              </Field>
+              <Field label={form.type === "visita" ? "Lugar de origen del orador" : "Lugar de destino"}>
+                <input value={form.place} onChange={e => set("place", e.target.value)} className="ipt" placeholder="Congregación / salón" />
+              </Field>
             </div>
+          )}
+
+          <Field label="Título del discurso">
+            <input value={form.title} onChange={e => set("title", e.target.value)} className="ipt" />
           </Field>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Título del discurso">
-              <input value={form.title} onChange={e => set("title", e.target.value)} className="ipt" />
-            </Field>
+          {form.type !== "evento" && (
             <Field label="Nº de discurso">
               <input value={form.speechNumber} onChange={e => set("speechNumber", e.target.value)} className="ipt" />
             </Field>
-          </div>
+          )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Teléfono">
-              <input value={form.phone} onChange={e => set("phone", e.target.value)} className="ipt" />
-            </Field>
-            <Field label="Coordinador">
-              <input value={form.coordinator} onChange={e => set("coordinator", e.target.value)} className="ipt" placeholder="Solo si aplica" />
-            </Field>
-          </div>
+          {form.type !== "evento" && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Teléfono">
+                <input value={form.phone} onChange={e => set("phone", e.target.value)} className="ipt" />
+              </Field>
+              <Field label="Coordinador">
+                <input value={form.coordinator} onChange={e => set("coordinator", e.target.value)} className="ipt" placeholder="Solo si aplica" />
+              </Field>
+            </div>
+          )}
 
           <Field label="Estado">
             <div className="flex gap-2 flex-wrap">

@@ -114,21 +114,24 @@ function SpeakersView({
   ), /* @__PURE__ */ React.createElement("button", { onClick: addBosquejoNum, className: "px-3 rounded-md text-xs font-medium", style: { background: COLORS.tealSoft, color: COLORS.teal } }, "A\xF1adir"))), panelSpeaker.isLocal && /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-medium", style: { color: COLORS.inkSoft } }, "Meses libres (no invitar)"), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-2" }, /* @__PURE__ */ React.createElement("button", { onClick: () => setBlockYear((y) => y - 1), className: "p-1 rounded-md hover:bg-black/5" }, /* @__PURE__ */ React.createElement(ChevronLeft, { size: 18 })), /* @__PURE__ */ React.createElement("span", { className: "text-xl font-semibold tabular-nums", style: { fontFamily: "Fraunces, serif", color: COLORS.teal, minWidth: 64, textAlign: "center" } }, blockYear), /* @__PURE__ */ React.createElement("button", { onClick: () => setBlockYear((y) => y + 1), className: "p-1 rounded-md hover:bg-black/5" }, /* @__PURE__ */ React.createElement(ChevronRight, { size: 18 })))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5" }, MONTHS.map((m, mi) => {
     const key = `${blockYear}-${String(mi + 1).padStart(2, "0")}`;
     const active = panelSpeaker.blockedMonths.includes(key);
+    const hasEvent = active && events.some((ev) => ev.speakerId === panelSpeaker.id && ym(ev.date) === key);
+    const activeColor = active ? hasEvent ? "#B0453B" : "#C4791A" : null;
     return /* @__PURE__ */ React.createElement(
       "button",
       {
         key: mi,
         onClick: () => toggleMonth(mi),
+        title: active ? hasEvent ? "Bloqueado por un evento de la agenda" : "Bloqueado manualmente (sin evento)" : "",
         className: "text-[11px] py-1.5 rounded-md border",
         style: {
-          borderColor: active ? "#B0453B" : COLORS.line,
-          background: active ? "#B0453B1A" : "transparent",
-          color: active ? "#B0453B" : COLORS.inkSoft
+          borderColor: active ? activeColor : COLORS.line,
+          background: active ? activeColor + "1A" : "transparent",
+          color: active ? activeColor : COLORS.inkSoft
         }
       },
       m.slice(0, 3)
     );
-  }))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-medium block mb-2", style: { color: COLORS.inkSoft } }, "Historial de discursos"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-64 overflow-y-auto" }, history.map((ev) => /* @__PURE__ */ React.createElement(
+  })), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-3 mt-2 text-[10px]", style: { color: COLORS.inkSoft } }, /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { background: "#B0453B" } }), " Evento en la agenda"), /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1" }, /* @__PURE__ */ React.createElement("span", { className: "w-2 h-2 rounded-full flex-shrink-0", style: { background: "#C4791A" } }), " Bloqueado manualmente"))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-medium block mb-2", style: { color: COLORS.inkSoft } }, "Historial de discursos"), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-64 overflow-y-auto" }, history.map((ev) => /* @__PURE__ */ React.createElement(
     "button",
     {
       key: ev.id,

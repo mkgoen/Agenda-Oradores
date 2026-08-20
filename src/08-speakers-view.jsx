@@ -1,91 +1,171 @@
+/* ---------------------------------------------------------------
+   Vista de Oradores (base de datos)
+   -----------------------------------------------------------------
+   Dos grandes secciones: Locales (lista alfabética) y Externos
+   (agrupados en sub-secciones por lugar de origen, alfabético). Cada
+   tarjeta abre un panel de detalle editable con animación suave, con
+   botones para invitar o eliminar al orador. Incluye un buscador,
+   un botón para añadir oradores nuevos y, en Locales, un botón para
+   generar un PDF con disponibilidad y bosquejos.
+----------------------------------------------------------------*/
+
 function SpeakersView({
   speakers, setSpeakers, events, statusColor, onEventClick,
-  search, setSearch, selectedId, setSelectedId, blockYear, setBlockYear, sortMode, setSortMode, sortDir, setSortDir,
+  search, setSearch, selectedId, setSelectedId, blockYear, setBlockYear,
+  deleteSpeaker, bosquejoTitles,
 }) {
   const search_ = search.toLowerCase();
-  const matches = (s) => s.name.toLowerCase().includes(search_) || s.origin.toLowerCase().includes(search_);
-  const visitorList = speakers.filter(s => !s.isLocal && matches(s));
-  const localList = speakers.filter(s => s.isLocal && matches(s));
-  const visitorGroups = groupAndSortSpeakers(visitorList, events, sortMode, sortDir);
-  const localGroups = groupAndSortSpeakers(localList, events, sortMode, sortDir);
-  const selected = speakers.find(s => s.id === selectedId);
-  const history = selected ? events.filter(ev => ev.speakerId === selected.id).sort((a, b) => b.date.localeCompare(a.date)) : [];
+  const matches = (s) => s.name.toLowerCase().includes(search_) || (s.origin || "").toLowerCase().includes(search_);
 
-  const updateSelected = (patch) => setSpeakers(ss => ss.map(s => s.id === selectedId ? { ...s, ...patch } : s));
+  const localList = useMemo(
+    () => speakers.filter(s => s.isLocal && matches(s)).sort((a, b) => a.name.localeCompare(b.name, "es")),
+    [speakers, search]
+  );
+  const externList = useMemo(() => speakers.filter(s => !s.isLocal && matches(s)), [speakers, search]);
+
+  // Externos agrupados por lugar de origen, en orden alfabético.
+  const originGroups = useMemo(() => {
+    const map = {};
+    externList.forEach(s => {
+      const key = (s.origin || "").trim() || "Sin lugar de origen";
+      (map[key] = map[key] || []).push(s);
+    });
+    return Object.keys(map).sort((a, b) => a.localeCompare(b, "es")).map(origin => ({
+      origin,
+      list: map[origin].sort((a, b) => a.name.localeCompare(b.name, "es")),
+    }));
+  }, [externList]);
+
+  // El detalle se abre/cierra con una transición suave. selectedId es la
+  // intención (qué orador debería estar abierto); panelId es lo que está
+  // realmente montado en el DOM (puede quedarse un instante más mientras
+  // se cierra) y panelExpanded controla la clase CSS que anima el alto.
+  const [panelId, setPanelId] = useState(selectedId);
+  const [panelExpanded, setPanelExpanded] = useState(!!selectedId);
+  const [inviteFor, setInviteFor] = useState(null);
+
+  useEffect(() => {
+    if (selectedId === panelId) return;
+    if (selectedId === null) {
+      setPanelExpanded(false);
+      const t = setTimeout(() => setPanelId(null), 320);
+      return () => clearTimeout(t);
+    }
+    if (panelId === null) {
+      setPanelId(selectedId);
+      requestAnimationFrame(() => requestAnimationFrame(() => setPanelExpanded(true)));
+    } else {
+      setPanelExpanded(false);
+      const t = setTimeout(() => {
+        setPanelId(selectedId);
+        requestAnimationFrame(() => requestAnimationFrame(() => setPanelExpanded(true)));
+      }, 320);
+      return () => clearTimeout(t);
+    }
+  }, [selectedId]);
+
+  const panelSpeaker = speakers.find(s => s.id === panelId);
+  const history = panelSpeaker ? events.filter(ev => ev.speakerId === panelSpeaker.id).sort((a, b) => b.date.localeCompare(a.date)) : [];
+
+  const updateSelected = (patch) => setSpeakers(ss => ss.map(s => s.id === panelId ? { ...s, ...patch } : s));
 
   const [newBosquejo, setNewBosquejo] = useState("");
   const addBosquejoNum = () => {
     const n = newBosquejo.trim();
     if (!n) return;
-    const current = selected.bosquejos || [];
+    const current = panelSpeaker.bosquejos || [];
     if (!current.includes(n)) updateSelected({ bosquejos: [...current, n] });
     setNewBosquejo("");
   };
-  const removeBosquejoNum = (n) => updateSelected({ bosquejos: (selected.bosquejos || []).filter(x => x !== n) });
+  const removeBosquejoNum = (n) => updateSelected({ bosquejos: (panelSpeaker.bosquejos || []).filter(x => x !== n) });
 
   const toggleMonth = (m) => {
     const key = `${blockYear}-${String(m + 1).padStart(2, "0")}`;
-    const has = selected.blockedMonths.includes(key);
-    updateSelected({ blockedMonths: has ? selected.blockedMonths.filter(x => x !== key) : [...selected.blockedMonths, key] });
+    const has = panelSpeaker.blockedMonths.includes(key);
+    updateSelected({ blockedMonths: has ? panelSpeaker.blockedMonths.filter(x => x !== key) : [...panelSpeaker.blockedMonths, key] });
   };
 
   const cardClick = (id) => setSelectedId(prev => prev === id ? null : id);
 
+  const [showAddModal, setShowAddModal] = useState(false);
+  const addNewSpeaker = (speaker) => setSpeakers(s => [...s, speaker]);
+
+  const handleDelete = () => {
+    if (!panelSpeaker) return;
+    if (!window.confirm(`¿Eliminar a ${panelSpeaker.name}? Esta acción no se puede deshacer.`)) return;
+    deleteSpeaker(panelSpeaker.id);
+    setSelectedId(null);
+  };
+
+  const handleInvite = () => {
+    if (!panelSpeaker) return;
+    setInviteFor(panelSpeaker);
+    setSelectedId(null);
+  };
+
   const speakerCard = (s) => (
     <button key={s.id} onClick={() => cardClick(s.id)}
-      className="text-left px-3 py-2.5 rounded-xl border flex items-center justify-between transition"
+      className="hg-hover text-left px-3 py-2.5 rounded-xl border flex items-center justify-between transition"
       style={{
         borderColor: s.id === selectedId ? COLORS.teal : COLORS.line,
         background: s.id === selectedId ? COLORS.tealSoft : COLORS.surface,
       }}>
       <div className="min-w-0">
         <div className="text-sm font-medium truncate">{s.name}</div>
-        <div className="text-[11px] truncate" style={{ color: COLORS.inkSoft }}>{s.origin}</div>
+        <div className="text-[11px] truncate" style={{ color: COLORS.inkSoft }}>{s.origin || "—"}</div>
       </div>
       {s.isLocal && <span className="text-[10px] px-1.5 py-0.5 rounded flex-shrink-0 ml-2" style={{ background: COLORS.teal, color: "white" }}>Local</span>}
     </button>
   );
 
   const speakerDetail = () => (
-    <div className="rounded-xl border p-5 space-y-4" style={{ borderColor: COLORS.teal, background: COLORS.surface, gridColumn: "1 / -1" }}>
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold" style={{ fontFamily: "Fraunces, serif" }}>{selected.name}</span>
-        <button onClick={() => setSelectedId(null)} className="p-1 rounded-full hover:bg-black/5">
-          <X size={16} style={{ color: COLORS.inkSoft }} />
-        </button>
-      </div>
+    <div className={"expand-wrap " + (panelExpanded ? "sd-expanded" : "sd-collapsed")} style={{ gridColumn: "1 / -1" }}>
+      <div className="rounded-xl border p-5 space-y-4 mt-2.5" style={{ borderColor: COLORS.teal, background: COLORS.surface }}>
+        <div className="flex items-start justify-between flex-wrap gap-y-2 gap-x-2">
+          <span className="text-sm font-semibold pt-1" style={{ fontFamily: "Fraunces, serif" }}>{panelSpeaker.name}</span>
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <button onClick={handleInvite} className="px-2.5 py-1 rounded-md text-xs font-medium text-white" style={{ background: COLORS.teal }}>
+              Invitar
+            </button>
+            <button onClick={handleDelete} className="px-2.5 py-1 rounded-md text-xs font-medium border" style={{ borderColor: "#B0453B", color: "#B0453B" }}>
+              Eliminar
+            </button>
+            <button onClick={() => setSelectedId(null)} className="p-1 rounded-full hover:bg-black/5">
+              <X size={16} style={{ color: COLORS.inkSoft }} />
+            </button>
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Nombre">
-          <input value={selected.name} onChange={e => updateSelected({ name: e.target.value })} className="ipt" />
-        </Field>
-        <Field label="Teléfono">
-          <input value={selected.phone} onChange={e => updateSelected({ phone: e.target.value })} className="ipt" />
-        </Field>
-        <Field label="Lugar de origen">
-          <input value={selected.origin} onChange={e => updateSelected({ origin: e.target.value })} className="ipt" disabled={selected.isLocal} />
-        </Field>
-        <Field label="Tipo">
-          <select value={selected.isLocal ? "local" : "visitante"} onChange={e => updateSelected({ isLocal: e.target.value === "local" })} className="ipt">
-            <option value="local">Orador local</option>
-            <option value="visitante">Orador visitante</option>
-          </select>
-        </Field>
-      </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Field label="Nombre">
+            <input value={panelSpeaker.name} onChange={e => updateSelected({ name: e.target.value })} className="ipt" />
+          </Field>
+          <Field label="Teléfono">
+            <input value={panelSpeaker.phone} onChange={e => updateSelected({ phone: e.target.value })} className="ipt" />
+          </Field>
+          <Field label="Lugar de origen">
+            <input value={panelSpeaker.origin} onChange={e => updateSelected({ origin: e.target.value })} className="ipt" />
+          </Field>
+          <Field label="Tipo">
+            <select value={panelSpeaker.isLocal ? "local" : "externo"} onChange={e => updateSelected({ isLocal: e.target.value === "local" })} className="ipt">
+              <option value="local">Orador local</option>
+              <option value="externo">Orador externo</option>
+            </select>
+          </Field>
+        </div>
 
-      {selected.isLocal && (
         <div>
           <span className="text-[11px] font-medium block mb-2" style={{ color: COLORS.inkSoft }}>Bosquejos que dispone</span>
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {(selected.bosquejos || []).map(n => (
+            {(panelSpeaker.bosquejos || []).map(n => (
               <span key={n} className="flex items-center gap-1 text-[11px] font-mono pl-2.5 pr-1 py-1 rounded-full" style={{ background: COLORS.tealSoft, color: COLORS.teal }}>
-                {n}
+                {n}{bosquejoTitles?.[n] ? ` - ${bosquejoTitles[n]}` : ""}
                 <button onClick={() => removeBosquejoNum(n)} className="rounded-full p-0.5 hover:bg-black/10" title="Eliminar">
                   <X size={10} />
                 </button>
               </span>
             ))}
-            {(selected.bosquejos || []).length === 0 && (
+            {(panelSpeaker.bosquejos || []).length === 0 && (
               <span className="text-xs" style={{ color: COLORS.inkSoft }}>Sin bosquejos añadidos todavía.</span>
             )}
           </div>
@@ -98,112 +178,124 @@ function SpeakersView({
             </button>
           </div>
         </div>
-      )}
 
-      {selected.isLocal && (
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium" style={{ color: COLORS.inkSoft }}>Meses libres (no invitar)</span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setBlockYear(y => y - 1)} className="p-1 rounded-md hover:bg-black/5"><ChevronLeft size={18} /></button>
-              <span className="text-xl font-semibold tabular-nums" style={{ fontFamily: "Fraunces, serif", color: COLORS.teal, minWidth: 64, textAlign: "center" }}>{blockYear}</span>
-              <button onClick={() => setBlockYear(y => y + 1)} className="p-1 rounded-md hover:bg-black/5"><ChevronRight size={18} /></button>
+        {panelSpeaker.isLocal && (
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-medium" style={{ color: COLORS.inkSoft }}>Meses libres (no invitar)</span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setBlockYear(y => y - 1)} className="p-1 rounded-md hover:bg-black/5"><ChevronLeft size={18} /></button>
+                <span className="text-xl font-semibold tabular-nums" style={{ fontFamily: "Fraunces, serif", color: COLORS.teal, minWidth: 64, textAlign: "center" }}>{blockYear}</span>
+                <button onClick={() => setBlockYear(y => y + 1)} className="p-1 rounded-md hover:bg-black/5"><ChevronRight size={18} /></button>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
+              {MONTHS.map((m, mi) => {
+                const key = `${blockYear}-${String(mi + 1).padStart(2, "0")}`;
+                const active = panelSpeaker.blockedMonths.includes(key);
+                const hasEvent = active && events.some(ev => ev.speakerId === panelSpeaker.id && ym(ev.date) === key);
+                const activeColor = active ? (hasEvent ? "#B0453B" : "#C4791A") : null;
+                return (
+                  <button key={mi} onClick={() => toggleMonth(mi)}
+                    title={active ? (hasEvent ? "Bloqueado por un evento de la agenda" : "Bloqueado manualmente (sin evento)") : ""}
+                    className="text-[11px] py-1.5 rounded-md border"
+                    style={{
+                      borderColor: active ? activeColor : COLORS.line,
+                      background: active ? activeColor + "1A" : "transparent",
+                      color: active ? activeColor : COLORS.inkSoft,
+                    }}>
+                    {m.slice(0, 3)}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-3 mt-2 text-[10px]" style={{ color: COLORS.inkSoft }}>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#B0453B" }} /> Evento en la agenda</span>
+              <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#C4791A" }} /> Bloqueado manualmente</span>
             </div>
           </div>
-          <div className="grid grid-cols-4 sm:grid-cols-6 lg:grid-cols-12 gap-1.5">
-            {MONTHS.map((m, mi) => {
-              const key = `${blockYear}-${String(mi + 1).padStart(2, "0")}`;
-              const active = selected.blockedMonths.includes(key);
-              return (
-                <button key={mi} onClick={() => toggleMonth(mi)}
-                  className="text-[11px] py-1.5 rounded-md border"
-                  style={{
-                    borderColor: active ? "#B0453B" : COLORS.line,
-                    background: active ? "#B0453B1A" : "transparent",
-                    color: active ? "#B0453B" : COLORS.inkSoft,
-                  }}>
-                  {m.slice(0, 3)}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
+        )}
 
-      <div>
-        <span className="text-[11px] font-medium block mb-2" style={{ color: COLORS.inkSoft }}>Historial de discursos</span>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-64 overflow-y-auto">
-          {history.map(ev => (
-            <button key={ev.id} onClick={() => onEventClick(ev)}
-              className="text-left px-3 py-2 rounded-lg flex items-center justify-between border"
-              style={{ borderColor: COLORS.line }}>
-              <div className="min-w-0">
-                <div className="text-xs font-medium truncate">{ev.title} <span className="opacity-50">nº{ev.speechNumber}</span></div>
-                <div className="text-[11px] flex items-center gap-1" style={{ color: COLORS.inkSoft }}>
-                  <MapPin size={10} /> {ev.place} · {formatDate(ev.date)}
+        <div>
+          <span className="text-[11px] font-medium block mb-2" style={{ color: COLORS.inkSoft }}>Historial de discursos</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 max-h-64 overflow-y-auto">
+            {history.map(ev => (
+              <button key={ev.id} onClick={() => onEventClick(ev)}
+                className="text-left px-3 py-2 rounded-lg flex items-center justify-between border"
+                style={{ borderColor: COLORS.line }}>
+                <div className="min-w-0">
+                  <div className="text-xs font-medium truncate">{ev.title} <span className="opacity-50">nº{ev.speechNumber}</span></div>
+                  <div className="text-[11px] flex items-center gap-1" style={{ color: COLORS.inkSoft }}>
+                    <MapPin size={10} /> {ev.place} · {formatDate(ev.date)}
+                  </div>
                 </div>
-              </div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ml-2" style={{ background: statusColor(ev.status) + "22", color: statusColor(ev.status) }}>
-                {ev.status}
-              </span>
-            </button>
-          ))}
-          {history.length === 0 && <div className="text-xs" style={{ color: COLORS.inkSoft }}>Sin discursos registrados todavía.</div>}
+                <span className="text-[10px] px-2 py-0.5 rounded-full flex-shrink-0 ml-2" style={{ background: statusColor(ev.status) + "22", color: statusColor(ev.status) }}>
+                  {ev.status}
+                </span>
+              </button>
+            ))}
+            {history.length === 0 && <div className="text-xs" style={{ color: COLORS.inkSoft }}>Sin discursos registrados todavía.</div>}
+          </div>
         </div>
       </div>
     </div>
   );
 
-  // Construye la cuadrícula intercalando: tarjeta de cada orador y, justo
-  // después de la que esté seleccionada, el panel de detalle a ancho completo.
-  const renderCards = (list) => list.map(s => (
+  // Intercala tarjeta + detalle (justo debajo de la tarjeta montada).
+  const renderCardsWithDetail = (list) => list.map(s => (
     <React.Fragment key={s.id}>
       {speakerCard(s)}
-      {s.id === selectedId && speakerDetail()}
+      {s.id === panelId && speakerDetail()}
     </React.Fragment>
   ));
 
-  const renderSection = (groups, sectionLabel) => (
-    <>
-      <div className="text-[10px] font-semibold uppercase tracking-wide px-1" style={{ color: COLORS.inkSoft, gridColumn: "1 / -1" }}>
-        {sectionLabel} ({groups.primary.length + groups.secondary.length})
-      </div>
-      {groups.primaryLabel && groups.primary.length > 0 && (
-        <div className="text-[10px] font-medium px-1" style={{ color: COLORS.teal, gridColumn: "1 / -1" }}>{groups.primaryLabel}</div>
-      )}
-      {renderCards(groups.primary)}
-      {groups.primary.length === 0 && groups.secondary.length === 0 && (
-        <div className="text-xs px-1" style={{ color: COLORS.inkSoft, gridColumn: "1 / -1" }}>Sin resultados</div>
-      )}
-      {groups.secondaryLabel && groups.secondary.length > 0 && (
-        <div className="text-[10px] font-medium px-1" style={{ color: COLORS.inkSoft, gridColumn: "1 / -1" }}>{groups.secondaryLabel}</div>
-      )}
-      {renderCards(groups.secondary)}
-    </>
-  );
-
   return (
     <div>
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg flex-1 min-w-[180px]" style={{ background: COLORS.surface, border: `1px solid ${COLORS.line}` }}>
           <Search size={14} style={{ color: COLORS.inkSoft }} />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar por nombre o lugar…"
             className="bg-transparent text-sm outline-none flex-1" />
         </div>
-        <select value={sortMode} onChange={e => setSortMode(e.target.value)} className="ipt text-xs w-auto">
-          {SORT_OPTIONS.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
-        </select>
-        <button onClick={() => setSortDir(d => d === "asc" ? "desc" : "asc")}
-          className="p-2 rounded-lg border flex-shrink-0" style={{ borderColor: COLORS.line }} title={sortDir === "asc" ? "Ascendente" : "Descendente"}>
-          {sortDir === "asc" ? <ArrowUp size={13} style={{ color: COLORS.teal }} /> : <ArrowDown size={13} style={{ color: COLORS.teal }} />}
+        <button onClick={() => setShowAddModal(true)} className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-white flex-shrink-0" style={{ background: COLORS.teal }}>
+          <Plus size={15} /> Añadir orador
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 items-start">
-        {renderSection(localGroups, "Locales")}
-        {renderSection(visitorGroups, "Visitantes")}
+      {/* ---------------- Locales ---------------- */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft }}>Locales ({localList.length})</span>
+        <button onClick={() => exportLocalsPdf(speakers.filter(s => s.isLocal))}
+          className="text-xs px-3 py-1.5 rounded-lg border flex-shrink-0" style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}>
+          Generar PDF
+        </button>
       </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 items-start mb-6">
+        {renderCardsWithDetail(localList)}
+        {localList.length === 0 && <div className="text-xs px-1" style={{ color: COLORS.inkSoft, gridColumn: "1 / -1" }}>Sin resultados</div>}
+      </div>
+
+      {/* ---------------- Externos (por lugar de origen) ---------------- */}
+      <span className="text-[11px] font-semibold uppercase tracking-wide block mb-2" style={{ color: COLORS.inkSoft }}>
+        Externos ({externList.length})
+      </span>
+      {originGroups.length === 0 && <div className="text-xs px-1 mb-4" style={{ color: COLORS.inkSoft }}>Sin resultados</div>}
+      {originGroups.map(({ origin, list }) => (
+        <div key={origin} className="mb-4">
+          <div className="text-[11px] font-medium mb-1.5" style={{ color: COLORS.teal }}>{origin} ({list.length})</div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 items-start">
+            {renderCardsWithDetail(list)}
+          </div>
+        </div>
+      ))}
+
+      {showAddModal && (
+        <AddSpeakerModal onClose={() => setShowAddModal(false)} onSave={addNewSpeaker} />
+      )}
+
+      {inviteFor && (
+        <InviteModal speaker={inviteFor} bosquejoTitles={bosquejoTitles} onClose={() => setInviteFor(null)} />
+      )}
     </div>
   );
 }
-

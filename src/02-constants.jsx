@@ -73,6 +73,28 @@ function formatDate(dateStr) {
 
 function ym(dateStr) { return dateStr ? dateStr.slice(0, 7) : ""; }
 
+// Corrige discrepancias entre los eventos reales y "Meses libres": para
+// cada orador local, cualquier mes en el que tenga un evento asignado
+// (visita, salida o evento) queda marcado como ocupado, sin tocar los
+// meses bloqueados manualmente que no tengan evento asociado. Se aplica
+// cada vez que se cargan datos (arranque, Abrir archivo), para arreglar
+// discrepancias acumuladas de versiones anteriores.
+function reconcileBlockedMonths(speakers, events) {
+  return speakers.map(s => {
+    if (!s.isLocal) return s;
+    const monthsWithEvents = new Set();
+    events.forEach(ev => {
+      if (ev.speakerId === s.id && ev.date) monthsWithEvents.add(ym(ev.date));
+    });
+    if (monthsWithEvents.size === 0) return s;
+    const merged = new Set(s.blockedMonths || []);
+    let changed = false;
+    monthsWithEvents.forEach(m => { if (!merged.has(m)) { merged.add(m); changed = true; } });
+    if (!changed) return s;
+    return { ...s, blockedMonths: Array.from(merged).sort() };
+  });
+}
+
 function isWeekend(dateStr) {
   if (!dateStr) return true;
   const d = new Date(dateStr + "T00:00:00").getDay();

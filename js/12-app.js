@@ -1,3 +1,15 @@
+function reconcileBlockedMonths(speakers, events) {
+  return speakers.map((sp) => {
+    if (!sp.isLocal) return sp;
+    const months = new Set(sp.blockedMonths || []);
+    const before = months.size;
+    events.forEach((ev) => {
+      if (ev.speakerId === sp.id && ev.date) months.add(ym(ev.date));
+    });
+    if (months.size === before) return sp;
+    return { ...sp, blockedMonths: Array.from(months).sort() };
+  });
+}
 function App() {
   const [loaded, setLoaded] = useState(false);
   const [speakers, setSpeakers] = useState([]);
@@ -25,8 +37,10 @@ function App() {
   useEffect(() => {
     const d = loadFromLocalStorage();
     if (d) {
-      setSpeakers(d.speakers || []);
-      setEvents(d.events || []);
+      const spk = d.speakers || [];
+      const evs = d.events || [];
+      setSpeakers(reconcileBlockedMonths(spk, evs));
+      setEvents(evs);
       setStatuses(d.statuses && d.statuses.length ? normalizeStatusColors(d.statuses) : DEFAULT_STATUSES);
       setReminders(d.reminders || []);
       setTheme(d.theme === "dark" ? "dark" : "light");
@@ -35,7 +49,7 @@ function App() {
       setBosquejoTitles(d.bosquejoTitles || {});
     } else {
       const merged = mergeExtraImport(EXCEL_IMPORT_DATA.speakers, EXCEL_IMPORT_DATA.events, EXTRA_IMPORT_2023_2024);
-      setSpeakers(merged.speakers);
+      setSpeakers(reconcileBlockedMonths(merged.speakers, merged.events));
       setEvents(merged.events);
       setStatuses(EXCEL_IMPORT_DATA.statuses);
       setReminders(EXCEL_IMPORT_DATA.reminders);
@@ -54,16 +68,20 @@ function App() {
   }, [speakers, events, statuses, reminders, theme, unavailableBosquejos, weekendFilter, bosquejoTitles, loaded]);
   const handleOpenFile = () => {
     openAgendaFile().then((d) => {
-      setSpeakers(d.speakers || []);
-      setEvents(d.events || []);
+      const spk = d.speakers || [];
+      const evs = d.events || [];
+      const reconciled = reconcileBlockedMonths(spk, evs);
+      const fixedCount = reconciled.filter((s, i) => s !== spk[i]).length;
+      setSpeakers(reconciled);
+      setEvents(evs);
       setStatuses(d.statuses && d.statuses.length ? normalizeStatusColors(d.statuses) : DEFAULT_STATUSES);
       setReminders(d.reminders || []);
       setTheme(d.theme === "dark" ? "dark" : "light");
       setWeekendFilter(d.weekendFilter === "sat" || d.weekendFilter === "sun" ? d.weekendFilter : "both");
       setUnavailableBosquejos(d.unavailableBosquejos || []);
       setBosquejoTitles(d.bosquejoTitles || {});
-      setFileMessage("Archivo cargado \u2713");
-      setTimeout(() => setFileMessage(""), 2500);
+      setFileMessage(fixedCount > 0 ? `Archivo cargado \u2713 (meses libres corregidos en ${fixedCount} orador${fixedCount > 1 ? "es" : ""})` : "Archivo cargado \u2713");
+      setTimeout(() => setFileMessage(""), fixedCount > 0 ? 5e3 : 2500);
     }).catch((e) => {
       setFileMessage("Error al abrir: " + e.message);
       setTimeout(() => setFileMessage(""), 4e3);

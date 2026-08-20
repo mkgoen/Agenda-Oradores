@@ -59,8 +59,13 @@ function relativeAge(dateStr) {
   return future ? `dentro de ${text}` : `hace ${text}`;
 }
 
-function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable }) {
+function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable, bosquejoTitles, setBosquejoTitles, dbExpanded, setDbExpanded }) {
   const [newUnavailable, setNewUnavailable] = useState("");
+  const [dbSearch, setDbSearch] = useState("");
+  const dbNums = useMemo(() => Array.from({ length: 194 }, (_, i) => String(i + 1)), []);
+  const dbFiltered = dbSearch.trim()
+    ? dbNums.filter(n => n === dbSearch.trim() || (bosquejoTitles[n] || "").toLowerCase().includes(dbSearch.trim().toLowerCase()))
+    : dbNums;
   const unavailableSet = useMemo(() => new Set(unavailable), [unavailable]);
 
   const addUnavailable = () => {
@@ -134,6 +139,9 @@ function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable }) {
                   {BOSQUEJO_LABELS[r.status]}
                 </span>
               </div>
+              {bosquejoTitles?.[r.num] && (
+                <div className="text-[11px] italic mb-1" style={{ color: COLORS.inkSoft }}>{bosquejoTitles[r.num]}</div>
+              )}
               {r.status === "unavailable" ? (
                 <div className="text-xs" style={{ color: COLORS.inkSoft }}>Marcado manualmente como no disponible.</div>
               ) : r.date ? (
@@ -151,7 +159,41 @@ function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable }) {
           ))}
         </div>
       )}
+
+      <div className="rounded-xl border cursor-pointer mt-6" onClick={() => setDbExpanded(e => !e)}
+        style={{ borderColor: COLORS.line, background: COLORS.surface }}>
+        <div className="p-4 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <div className="text-sm font-medium" style={{ color: COLORS.ink }}>Base de datos de bosquejos</div>
+            <div className="text-xs" style={{ color: COLORS.inkSoft }}>
+              Asocia un título a cada número (1-194) para que se autocomplete en eventos e invitaciones.
+            </div>
+          </div>
+          <ChevronRight size={18} style={{ color: COLORS.inkSoft, flexShrink: 0, transform: dbExpanded ? "rotate(90deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }} />
+        </div>
+      </div>
+
+      <div className={"expand-wrap " + (dbExpanded ? "sd-expanded" : "sd-collapsed")}>
+        <div className="rounded-xl border p-4 mt-2.5" style={{ borderColor: COLORS.line, background: COLORS.surface }} onClick={e => e.stopPropagation()}>
+          <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg mb-3" style={{ background: COLORS.bg, border: `1px solid ${COLORS.line}` }}>
+            <Search size={14} style={{ color: COLORS.inkSoft }} />
+            <input value={dbSearch} onChange={e => setDbSearch(e.target.value)} placeholder="Buscar por número o título…"
+              className="bg-transparent text-sm outline-none flex-1" />
+          </div>
+          <div className="space-y-1.5 overflow-y-auto" style={{ maxHeight: 900 }}>
+            {dbFiltered.map(n => (
+              <div key={n} className="flex items-center gap-2">
+                <span className="text-xs font-mono flex-shrink-0" style={{ width: 34, color: COLORS.teal, fontWeight: 600 }}>{n}</span>
+                <input value={bosquejoTitles[n] || ""} onChange={e => setBosquejoTitles(prev => ({ ...prev, [n]: e.target.value }))}
+                  placeholder="Título del bosquejo…" className="ipt text-xs" />
+              </div>
+            ))}
+            {dbFiltered.length === 0 && (
+              <div className="text-xs text-center py-6" style={{ color: COLORS.inkSoft }}>Sin coincidencias.</div>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
-

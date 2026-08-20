@@ -3,8 +3,9 @@
 ----------------------------------------------------------------*/
 function Pill({ ev, statusColor, onClick, unavailableBosquejos }) {
   const color = statusColor(ev.status);
-  const tooltipLabel = ev.type === "salida" ? "Destino" : "Origen";
   const isSalida = ev.type === "salida";
+  const isEvento = ev.type === "evento";
+  const tooltipLabel = isSalida ? "Destino" : isEvento ? "Lugar" : "Origen";
   const t = todayMidnight();
   const todayIso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
   const num = ev.speechNumber ? String(ev.speechNumber).trim() : "";
@@ -19,7 +20,7 @@ function Pill({ ev, statusColor, onClick, unavailableBosquejos }) {
   const leftCluster = (
     <span className="flex items-center gap-1.5 min-w-0">
       {hasWarning && <AlertTriangle size={12} style={{ color: "#B9822E", flexShrink: 0 }} />}
-      {!isSalida && <ArrowDownRight size={12} style={{ color, flexShrink: 0 }} />}
+      {!isSalida && (isEvento ? <Circle size={9} style={{ color, flexShrink: 0, fill: color }} /> : <ArrowDownRight size={12} style={{ color, flexShrink: 0 }} />)}
       <span className="text-[13px] truncate" style={{ color: COLORS.ink }}>{ev.speakerName || ev.title}</span>
     </span>
   );
@@ -59,7 +60,7 @@ function MonthCard({ year, monthIndex, events, statusColor, onDayAdd, onEventCli
     const dayEvents = events.filter(ev => ev.date === w.iso);
     const isCurrentWeekend = highlight && (w.iso === highlight.sat || w.iso === highlight.sun);
     return (
-      <div key={w.iso} className="rounded-lg p-1.5" style={{
+      <div key={w.iso} className="hg-zoom rounded-lg p-1.5" style={{
         background: isCurrentWeekend ? COLORS.tealSoft : COLORS.bg,
         outline: isCurrentWeekend ? `1.5px solid ${COLORS.teal}` : "none",
         outlineOffset: isCurrentWeekend ? "-1.5px" : "0",
@@ -142,36 +143,75 @@ function useYearSwipe(setYear) {
 
 function YearView({ year, setYear, type, events, statusColor, onDayAdd, onEventClick, weekendFilter, setWeekendFilter, unavailableBosquejos }) {
   const filtered = useMemo(() => events.filter(ev => {
-    const matchesType = type === "all" ? true : ev.type === type;
+    const matchesType = type === "all" ? true : type === "visita" ? (ev.type === "visita" || ev.type === "evento") : ev.type === type;
     return matchesType && ev.date?.startsWith(String(year));
   }), [events, type, year]);
 
   const highlight = useMemo(() => getCurrentOrNextWeekend(), []);
   const swipeHandlers = useYearSwipe(setYear);
 
+  // Efecto "rueda deslizante": al cambiar de año toda la fila se desliza
+  // lateralmente como una rueda vista de frente (eje de giro horizontal),
+  // y cada número mantiene una ligera curvatura 3D permanente (los
+  // extremos quedan más pequeños y "hacia atrás").
+  const prevYearRef = useRef(year);
+  const [spinDir, setSpinDir] = useState(1);
+  useEffect(() => {
+    if (year !== prevYearRef.current) {
+      setSpinDir(year > prevYearRef.current ? 1 : -1);
+      prevYearRef.current = year;
+    }
+  }, [year]);
+
+  const wheelTransform = (offset, isCurrent) => {
+    const abs = Math.abs(offset);
+    const translateY = abs * 3; // los extremos caen un poco, dando sensación de curvatura
+    const translateX = offset * -1;
+    return `translateY(${translateY}px) translateX(${translateX}px) scale(${isCurrent ? 1 : 1 - abs * 0.08})`;
+  };
+
   return (
     <div>
-      {/* Navegador de años */}
-      <div className="flex items-center justify-center gap-1 mb-5">
-        {[-2, -1, 0, 1, 2].map(offset => {
-          const y = year + offset;
-          const isCurrent = offset === 0;
-          return (
-            <button key={y} onClick={() => setYear(y)}
-              className="rounded-xl transition font-semibold"
-              style={{
-                fontFamily: "Fraunces, serif",
-                fontSize: isCurrent ? 26 : 15,
-                padding: isCurrent ? "6px 18px" : "4px 10px",
-                color: isCurrent ? COLORS.teal : COLORS.inkSoft,
-                background: isCurrent ? COLORS.tealSoft : "transparent",
-                border: isCurrent ? `2px solid ${COLORS.teal}` : "2px solid transparent",
-                opacity: Math.abs(offset) === 2 ? 0.5 : 1,
-              }}>
-              {y}
-            </button>
-          );
-        })}
+      <style>{`
+        @keyframes yearSlideFwd {
+          0% { transform: translateX(70px); opacity: 0.35; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes yearSlideBack {
+          0% { transform: translateX(-70px); opacity: 0.35; }
+          100% { transform: translateX(0); opacity: 1; }
+        }
+        .year-wheel-outer { overflow: hidden; }
+        .year-slide-fwd { animation: yearSlideFwd 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
+        .year-slide-back { animation: yearSlideBack 0.85s cubic-bezier(0.22, 1, 0.36, 1); }
+      `}</style>
+      {/* Navegador de años: rueda deslizante */}
+      <div className="year-wheel-outer py-2">
+        <div key={year} className={"flex items-center justify-center gap-1 mb-5 " + (spinDir > 0 ? "year-slide-fwd" : "year-slide-back")}>
+          {[-2, -1, 0, 1, 2].map(offset => {
+            const y = year + offset;
+            const isCurrent = offset === 0;
+            return (
+              <button key={y} onClick={() => setYear(y)}
+                className="hg-hover rounded-xl transition font-semibold"
+                style={{
+                  fontFamily: "Fraunces, serif",
+                  fontSize: isCurrent ? 26 : 15,
+                  padding: isCurrent ? "6px 18px" : "4px 10px",
+                  color: isCurrent ? COLORS.teal : COLORS.inkSoft,
+                  background: isCurrent ? COLORS.tealSoft : "transparent",
+                  border: isCurrent ? `2px solid ${COLORS.teal}` : "2px solid transparent",
+                  opacity: Math.abs(offset) === 2 ? 0.45 : 1,
+                  transform: wheelTransform(offset, isCurrent),
+                  transition: "transform 0.3s ease",
+                  position: "relative",
+                  zIndex: isCurrent ? 2 : 1,
+                }}>
+                {y}
+              </button>
+            );
+          })}
+        </div>
       </div>
       <div className="flex items-center justify-end mb-4 flex-wrap gap-3">
           {type === "visita" && setWeekendFilter && (
@@ -188,6 +228,7 @@ function YearView({ year, setYear, type, events, statusColor, onDayAdd, onEventC
           <div className="flex items-center gap-3 text-[11px]" style={{ color: COLORS.inkSoft }}>
             <span className="flex items-center gap-1"><ArrowDownRight size={12} /> Visita</span>
             <span className="flex items-center gap-1"><ArrowUpRight size={12} /> Salida</span>
+            <span className="flex items-center gap-1"><Circle size={9} style={{ fill: COLORS.inkSoft }} /> Evento</span>
           </div>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"

@@ -21,3 +21,16 @@ consultar la agenda.
 
 Sigue las instrucciones que Claude te dio paso a paso para subir esto
 a GitHub Pages.
+
+NOVEDADES DE ESTA VERSIÓN
+--------------------------
+- js/14-pdf-export.js: genera el PDF de oradores locales (usa jsPDF,
+  cargado por CDN en index.html).
+- js/15-bosquejo-db.js: la ventana "Base de datos" de bosquejos
+  (número -> título), dentro de la pestaña "Agendar bosquejos".
+- js/16-invite-modal.js: la ventana de "Invitar" que se abre desde la
+  ficha de cada orador.
+- js/08-speakers-view.js: reestructurado en Locales / Externos (estos
+  últimos agrupados por lugar de origen), con botones de añadir,
+  invitar y eliminar orador.
+
