@@ -7,18 +7,14 @@ function Pill({ ev, statusColor, onClick, unavailableBosquejos }) {
   const todayIso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
   const num = ev.speechNumber ? String(ev.speechNumber).trim() : "";
   const hasWarning = !!num && !!ev.date && ev.date >= todayIso && unavailableBosquejos && unavailableBosquejos.includes(num);
-  const arrowBadge = /* @__PURE__ */ React.createElement("span", { className: "rounded-full flex items-center justify-center flex-shrink-0", style: { width: 14, height: 14, border: `1.5px solid ${color}` } }, /* @__PURE__ */ React.createElement(ArrowUpRight, { size: 9, style: { color } }));
-  const leftCluster = /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1.5 min-w-0" }, hasWarning && /* @__PURE__ */ React.createElement(AlertTriangle, { size: 12, style: { color: "#B9822E", flexShrink: 0 } }), !isSalida && (isEvento ? /* @__PURE__ */ React.createElement(Circle, { size: 9, style: { color, flexShrink: 0, fill: color } }) : /* @__PURE__ */ React.createElement(ArrowDownRight, { size: 12, style: { color, flexShrink: 0 } })), /* @__PURE__ */ React.createElement("span", { className: "text-[13px] truncate", style: { color: COLORS.ink } }, ev.speakerName || ev.title));
-  return /* @__PURE__ */ React.createElement("div", { className: "relative group" }, /* @__PURE__ */ React.createElement(
+  const arrowBadge = /* @__PURE__ */ React.createElement("span", { className: "rounded-full flex items-center justify-center flex-shrink-0", style: { width: 14, height: 14, border: "1.5px solid #fff" } }, /* @__PURE__ */ React.createElement(ArrowUpRight, { size: 9, style: { color: "#fff" } }));
+  const leftCluster = /* @__PURE__ */ React.createElement("span", { className: "flex items-center gap-1.5 min-w-0" }, hasWarning && /* @__PURE__ */ React.createElement(AlertTriangle, { size: 12, style: { color: "#3A2600", flexShrink: 0 } }), !isSalida && (isEvento ? /* @__PURE__ */ React.createElement(Circle, { size: 9, style: { color: "#fff", flexShrink: 0, fill: "#fff" } }) : /* @__PURE__ */ React.createElement(ArrowDownRight, { size: 12, style: { color: "#fff", flexShrink: 0 } })), /* @__PURE__ */ React.createElement("span", { className: "text-[13px] truncate font-medium", style: { color: "#fff" } }, ev.speakerName || ev.title));
+  return /* @__PURE__ */ React.createElement("div", { className: "relative group h-full" }, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick,
-      className: "w-full text-left px-2 py-1 rounded-md flex items-center hover:brightness-95 transition" + (isSalida ? " justify-between gap-1.5" : ""),
-      style: {
-        background: color + "1A",
-        borderLeft: isSalida ? "none" : `3px solid ${color}`,
-        borderRight: isSalida ? `3px solid ${color}` : "none"
-      }
+      className: "w-full h-full text-left px-2 rounded-md flex items-center hover:brightness-110 transition" + (isSalida ? " justify-between gap-1.5" : ""),
+      style: { background: color }
     },
     leftCluster,
     isSalida && arrowBadge
@@ -44,12 +40,32 @@ function MonthCard({ year, monthIndex, events, statusColor, onDayAdd, onEventCli
     if (!w) return /* @__PURE__ */ React.createElement("div", null);
     const dayEvents = events.filter((ev) => ev.date === w.iso);
     const isCurrentWeekend = highlight && (w.iso === highlight.sat || w.iso === highlight.sun);
-    return /* @__PURE__ */ React.createElement("div", { key: w.iso, className: "hg-zoom rounded-lg p-1.5", style: {
-      background: isCurrentWeekend ? COLORS.tealSoft : COLORS.bg,
-      outline: isCurrentWeekend ? `1.5px solid ${COLORS.teal}` : "none",
-      outlineOffset: isCurrentWeekend ? "-1.5px" : "0",
-      minHeight: 54
-    } }, /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-1" }, /* @__PURE__ */ React.createElement("span", { className: "text-[13px] font-medium flex items-center gap-1", style: { color: isCurrentWeekend ? COLORS.teal : COLORS.inkSoft, fontFamily: "IBM Plex Mono, monospace" } }, DOW_SHORT[w.dow], " ", w.day, isCurrentWeekend && /* @__PURE__ */ React.createElement("span", { className: "w-1.5 h-1.5 rounded-full flex-shrink-0", style: { background: COLORS.teal } })), /* @__PURE__ */ React.createElement("button", { onClick: () => onDayAdd(w.iso), className: "opacity-40 hover:opacity-100 transition" }, /* @__PURE__ */ React.createElement(Plus, { size: 12, style: { color: COLORS.teal } }))), /* @__PURE__ */ React.createElement("div", { className: "space-y-1" }, dayEvents.map((ev) => /* @__PURE__ */ React.createElement(Pill, { key: ev.id, ev, statusColor, onClick: () => onEventClick(ev), unavailableBosquejos }))));
+    const badgeColor = isCurrentWeekend ? COLORS.teal : COLORS.ink;
+    return /* @__PURE__ */ React.createElement("div", { key: w.iso, className: "hg-zoom rounded-lg flex overflow-hidden", style: {
+      background: COLORS.surface,
+      border: `1.5px solid ${isCurrentWeekend ? COLORS.teal : COLORS.line}`,
+      minHeight: 60
+    } }, /* @__PURE__ */ React.createElement(
+      "div",
+      {
+        className: "flex flex-col items-center justify-center flex-shrink-0 px-2",
+        style: {
+          borderRight: `1.5px solid ${isCurrentWeekend ? COLORS.teal : COLORS.line}`,
+          background: isCurrentWeekend ? COLORS.tealSoft : COLORS.bg,
+          minWidth: 44
+        }
+      },
+      /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "Fraunces, serif", fontWeight: 700, fontSize: 20, lineHeight: 1, color: badgeColor } }, w.day),
+      /* @__PURE__ */ React.createElement("span", { style: { fontFamily: "Fraunces, serif", fontWeight: 700, fontSize: 10, letterSpacing: "0.5px", color: isCurrentWeekend ? COLORS.teal : COLORS.inkSoft, marginTop: 2 } }, MONTHS[monthIndex].slice(0, 3).toUpperCase())
+    ), /* @__PURE__ */ React.createElement("div", { className: "flex-1 min-w-0 p-1.5 relative" }, /* @__PURE__ */ React.createElement(
+      "button",
+      {
+        onClick: () => onDayAdd(w.iso),
+        className: "hg-zoom absolute top-1 right-1 flex items-center justify-center rounded-md z-10",
+        style: { width: 18, height: 18, background: COLORS.bg }
+      },
+      /* @__PURE__ */ React.createElement(Plus, { size: 12, style: { color: COLORS.teal } })
+    ), /* @__PURE__ */ React.createElement("div", { className: "flex flex-col gap-1 h-full" }, dayEvents.map((ev) => /* @__PURE__ */ React.createElement("div", { key: ev.id, className: "flex-1 min-h-0" }, /* @__PURE__ */ React.createElement(Pill, { ev, statusColor, onClick: () => onEventClick(ev), unavailableBosquejos }))))));
   };
   return /* @__PURE__ */ React.createElement("div", { className: "rounded-xl border", style: { borderColor: COLORS.line, background: COLORS.surface } }, /* @__PURE__ */ React.createElement("div", { className: "px-3 py-2 border-b text-center", style: { borderColor: COLORS.line } }, /* @__PURE__ */ React.createElement("span", { className: "text-[15px] font-semibold tracking-wide", style: { fontFamily: "Fraunces, serif", color: COLORS.teal } }, MONTHS[monthIndex])), /* @__PURE__ */ React.createElement("div", { className: "p-2 space-y-1" }, rows.map((row, ri) => /* @__PURE__ */ React.createElement("div", { key: ri, className: bothMode ? "grid grid-cols-2 gap-1.5" : "grid grid-cols-1 gap-1.5" }, bothMode ? /* @__PURE__ */ React.createElement(React.Fragment, null, renderDayCell(row.sat), renderDayCell(row.sun)) : renderDayCell(row.sat || row.sun)))));
 }
