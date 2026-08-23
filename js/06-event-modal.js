@@ -21,7 +21,7 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   useEffect(() => {
     const n = String(form.speechNumber || "").trim();
-    if (n && bosquejoTitles && bosquejoTitles[n] && !form.title) {
+    if (n && bosquejoTitles && bosquejoTitles[n]) {
       set("title", bosquejoTitles[n]);
     }
   }, [form.speechNumber]);
