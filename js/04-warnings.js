@@ -4,8 +4,11 @@ function computeWarnings(form, events, speakers, excludeId, unavailableBosquejos
     warnings.push({ key: "weekend", text: "Esa fecha no cae en s\xE1bado ni domingo. Aqu\xED solo se programan discursos de fin de semana." });
   }
   if (form.type === "visita" && form.speechNumber && form.date) {
+    const t = todayMidnight();
+    const todayIso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
     const dup = events.find(
-      (ev) => ev.id !== excludeId && ev.type === "visita" && String(ev.speechNumber).trim() === String(form.speechNumber).trim() && Math.abs(new Date(ev.date) - new Date(form.date)) / 864e5 < 365
+      (ev) => ev.id !== excludeId && ev.type === "visita" && String(ev.speechNumber).trim() === String(form.speechNumber).trim() && ev.date >= todayIso && // solo avisa si interfiere con un evento futuro, no con historial pasado
+      Math.abs(new Date(ev.date) - new Date(form.date)) / 864e5 < 365
     );
     if (dup) {
       warnings.push({ key: "duplicate", text: `El discurso n\xBA ${form.speechNumber} ya se dio aqu\xED el ${formatDate(dup.date)}, con ${dup.speakerName}. Han pasado menos de 12 meses.` });
