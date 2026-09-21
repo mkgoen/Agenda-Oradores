@@ -11,7 +11,8 @@ function SpeakersView({
   blockYear,
   setBlockYear,
   deleteSpeaker,
-  bosquejoTitles
+  bosquejoTitles,
+  unavailableBosquejos
 }) {
   const search_ = search.toLowerCase();
   const matches = (s) => s.name.toLowerCase().includes(search_) || (s.origin || "").toLowerCase().includes(search_);
@@ -106,7 +107,22 @@ function SpeakersView({
       onChange: (e) => updateSelected({ approved: e.target.checked }),
       style: { accentColor: COLORS.teal, width: 14, height: 14 }
     }
-  ), "Orador aprobado")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1.5 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: handleInvite, className: "px-2.5 py-1 rounded-md text-xs font-medium text-white", style: { background: COLORS.teal } }, "Invitar"), /* @__PURE__ */ React.createElement("button", { onClick: handleDelete, className: "px-2.5 py-1 rounded-md text-xs font-medium border", style: { borderColor: "#B0453B", color: "#B0453B" } }, "Eliminar"), /* @__PURE__ */ React.createElement("button", { onClick: () => setSelectedId(null), className: "p-1 rounded-full hover:bg-black/5" }, /* @__PURE__ */ React.createElement(X, { size: 16, style: { color: COLORS.inkSoft } })))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement(Field, { label: "Nombre" }, /* @__PURE__ */ React.createElement("input", { value: panelSpeaker.name, onChange: (e) => updateSelected({ name: e.target.value }), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Tel\xE9fono" }, /* @__PURE__ */ React.createElement("input", { value: panelSpeaker.phone, onChange: (e) => updateSelected({ phone: e.target.value }), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Lugar de origen" }, /* @__PURE__ */ React.createElement("input", { value: panelSpeaker.origin, onChange: (e) => updateSelected({ origin: e.target.value }), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Tipo" }, /* @__PURE__ */ React.createElement("select", { value: panelSpeaker.isLocal ? "local" : "externo", onChange: (e) => updateSelected({ isLocal: e.target.value === "local" }), className: "ipt" }, /* @__PURE__ */ React.createElement("option", { value: "local" }, "Orador local"), /* @__PURE__ */ React.createElement("option", { value: "externo" }, "Orador externo")))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-medium block mb-2", style: { color: COLORS.inkSoft } }, "Bosquejos que dispone"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5 mb-2" }, (panelSpeaker.bosquejos || []).map((n) => /* @__PURE__ */ React.createElement("span", { key: n, className: "flex items-center gap-1 text-[11px] font-mono pl-2.5 pr-1 py-1 rounded-full", style: { background: COLORS.tealSoft, color: COLORS.teal } }, n, bosquejoTitles?.[n] ? ` - ${bosquejoTitles[n]}` : "", /* @__PURE__ */ React.createElement("button", { onClick: () => removeBosquejoNum(n), className: "rounded-full p-0.5 hover:bg-black/10", title: "Eliminar" }, /* @__PURE__ */ React.createElement(X, { size: 10 })))), (panelSpeaker.bosquejos || []).length === 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Sin bosquejos a\xF1adidos todav\xEDa.")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
+  ), "Orador aprobado")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center gap-1.5 flex-shrink-0" }, /* @__PURE__ */ React.createElement("button", { onClick: handleInvite, className: "px-2.5 py-1 rounded-md text-xs font-medium text-white", style: { background: COLORS.teal } }, "Invitar"), /* @__PURE__ */ React.createElement("button", { onClick: handleDelete, className: "px-2.5 py-1 rounded-md text-xs font-medium border", style: { borderColor: "#B0453B", color: "#B0453B" } }, "Eliminar"), /* @__PURE__ */ React.createElement("button", { onClick: () => setSelectedId(null), className: "p-1 rounded-full hover:bg-black/5" }, /* @__PURE__ */ React.createElement(X, { size: 16, style: { color: COLORS.inkSoft } })))), /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement(Field, { label: "Nombre" }, /* @__PURE__ */ React.createElement("input", { value: panelSpeaker.name, onChange: (e) => updateSelected({ name: e.target.value }), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Tel\xE9fono" }, /* @__PURE__ */ React.createElement("input", { value: panelSpeaker.phone, onChange: (e) => updateSelected({ phone: e.target.value }), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Lugar de origen" }, /* @__PURE__ */ React.createElement("input", { value: panelSpeaker.origin, onChange: (e) => updateSelected({ origin: e.target.value }), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Tipo" }, /* @__PURE__ */ React.createElement("select", { value: panelSpeaker.isLocal ? "local" : "externo", onChange: (e) => updateSelected({ isLocal: e.target.value === "local" }), className: "ipt" }, /* @__PURE__ */ React.createElement("option", { value: "local" }, "Orador local"), /* @__PURE__ */ React.createElement("option", { value: "externo" }, "Orador externo")))), /* @__PURE__ */ React.createElement("div", null, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-medium block mb-2", style: { color: COLORS.inkSoft } }, "Bosquejos que dispone"), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5 mb-2" }, (panelSpeaker.bosquejos || []).map((n) => {
+    const isUnavailable = unavailableBosquejos && unavailableBosquejos.includes(n);
+    const chipColor = isUnavailable ? "#5C3A21" : COLORS.teal;
+    return /* @__PURE__ */ React.createElement(
+      "span",
+      {
+        key: n,
+        className: "flex items-center gap-1 text-[11px] font-mono pl-2.5 pr-1 py-1 rounded-full",
+        style: { background: isUnavailable ? "#5C3A2122" : COLORS.tealSoft, color: chipColor },
+        title: isUnavailable ? "Marcado como no disponible" : ""
+      },
+      n,
+      bosquejoTitles?.[n] ? ` - ${bosquejoTitles[n]}` : "",
+      /* @__PURE__ */ React.createElement("button", { onClick: () => removeBosquejoNum(n), className: "rounded-full p-0.5 hover:bg-black/10", title: "Eliminar" }, /* @__PURE__ */ React.createElement(X, { size: 10 }))
+    );
+  }), (panelSpeaker.bosquejos || []).length === 0 && /* @__PURE__ */ React.createElement("span", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Sin bosquejos a\xF1adidos todav\xEDa.")), /* @__PURE__ */ React.createElement("div", { className: "flex gap-2" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       value: newBosquejo,
@@ -162,7 +178,7 @@ function SpeakersView({
   )), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowAddModal(true), className: "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-white flex-shrink-0", style: { background: COLORS.teal } }, /* @__PURE__ */ React.createElement(Plus, { size: 15 }), " A\xF1adir orador")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-semibold uppercase tracking-wide", style: { color: COLORS.inkSoft } }, "Locales (", localList.length, ")"), /* @__PURE__ */ React.createElement(
     "button",
     {
-      onClick: () => exportLocalsPdf(speakers.filter((s) => s.isLocal && s.approved)),
+      onClick: () => exportLocalsPdf(speakers.filter((s) => s.isLocal && s.approved), bosquejoTitles, unavailableBosquejos),
       className: "text-xs px-3 py-1.5 rounded-lg border flex-shrink-0",
       style: { borderColor: COLORS.line, color: COLORS.inkSoft }
     },

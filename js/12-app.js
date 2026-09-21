@@ -247,7 +247,8 @@ function App() {
       sortDir: speakerSortDir,
       setSortDir: setSpeakerSortDir,
       deleteSpeaker,
-      bosquejoTitles
+      bosquejoTitles,
+      unavailableBosquejos
     }
   ) : view === "bosquejos" ? /* @__PURE__ */ React.createElement(
     BosquejosView,

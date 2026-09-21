@@ -2,7 +2,7 @@ const PDF_BRAND = [20, 82, 76];
 const PDF_INK = [34, 38, 31];
 const PDF_INK_SOFT = [107, 110, 99];
 const PDF_LINE = [226, 223, 211];
-function exportLocalsPdf(localSpeakers) {
+function exportLocalsPdf(localSpeakers, bosquejoTitles, unavailableBosquejos) {
   if (!window.jspdf || !window.jspdf.jsPDF) {
     alert("No se pudo cargar la librer\xEDa de PDF. Comprueba tu conexi\xF3n a internet e int\xE9ntalo de nuevo.");
     return;
@@ -11,6 +11,8 @@ function exportLocalsPdf(localSpeakers) {
     alert('No hay oradores locales marcados como "Orador aprobado". M\xE1rcalos en su ficha para incluirlos en el PDF.');
     return;
   }
+  const unavailableSet = new Set(unavailableBosquejos || []);
+  const titles = bosquejoTitles || {};
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -48,6 +50,30 @@ function exportLocalsPdf(localSpeakers) {
       y = 44;
     }
   };
+  const drawBulletColumn = (items, emptyText) => {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9.5);
+    if (items.length === 0) {
+      ensureSpace(13);
+      doc.setTextColor(...PDF_INK_SOFT);
+      doc.text(emptyText, marginX + 16, y);
+      y += 13;
+      return;
+    }
+    items.forEach((item) => {
+      const wrapped = doc.splitTextToSize(item, contentWidth - 30);
+      wrapped.forEach((line, li) => {
+        ensureSpace(13);
+        if (li === 0) {
+          doc.setTextColor(...PDF_BRAND);
+          doc.text("\u2022", marginX + 16, y);
+        }
+        doc.setTextColor(...PDF_INK);
+        doc.text(line, marginX + 26, y);
+        y += 13;
+      });
+    });
+  };
   const sorted = [...localSpeakers].sort((a, b) => a.name.localeCompare(b.name, "es"));
   sorted.forEach((sp, idx) => {
     ensureSpace(56);
@@ -65,46 +91,26 @@ function exportLocalsPdf(localSpeakers) {
     y += 13;
     const blocked = new Set(sp.blockedMonths || []);
     const available = next12.filter((m) => !blocked.has(m.key));
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    if (available.length === 0) {
-      ensureSpace(13);
-      doc.setTextColor(...PDF_INK_SOFT);
-      doc.text("\u2014 Sin meses disponibles en el pr\xF3ximo a\xF1o \u2014", marginX + 16, y);
-      y += 13;
-    } else {
-      available.forEach((m) => {
-        ensureSpace(13);
-        doc.setTextColor(...PDF_BRAND);
-        doc.text("\u2022", marginX + 16, y);
-        doc.setTextColor(...PDF_INK);
-        doc.text(m.label, marginX + 26, y);
-        y += 13;
-      });
-    }
-    y += 6;
+    drawBulletColumn(available.map((m) => m.label), "\u2014 Sin meses disponibles en el pr\xF3ximo a\xF1o \u2014");
+    y += 10;
     ensureSpace(24);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(...PDF_INK_SOFT);
     doc.text("BOSQUEJOS QUE DISPONE", marginX + 11, y);
     y += 13;
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(9.5);
-    doc.setTextColor(...PDF_INK);
-    const bosqLine = sp.bosquejos && sp.bosquejos.length ? sp.bosquejos.join(", ") : "\u2014 ninguno registrado \u2014";
-    const wrapped = doc.splitTextToSize(bosqLine, contentWidth - 16);
-    wrapped.forEach((l) => {
-      ensureSpace(12);
-      doc.text(l, marginX + 16, y);
-      y += 12;
-    });
-    y += 16;
+    const bosquejosList = (sp.bosquejos || []).filter((n) => !unavailableSet.has(n));
+    drawBulletColumn(
+      bosquejosList.map((n) => titles[n] ? `${n} - ${titles[n]}` : `${n}`),
+      "\u2014 ninguno registrado \u2014"
+    );
+    y += 14;
     if (idx < sorted.length - 1) {
-      ensureSpace(4);
+      ensureSpace(26);
       doc.setDrawColor(...PDF_LINE);
       doc.setLineWidth(0.75);
-      doc.line(marginX, y - 8, pageWidth - marginX, y - 8);
+      doc.line(marginX, y, pageWidth - marginX, y);
+      y += 24;
     }
   });
   const pageCount = doc.internal.getNumberOfPages();
