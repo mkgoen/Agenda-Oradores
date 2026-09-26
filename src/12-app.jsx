@@ -341,7 +341,7 @@ function App() {
             blockYear={speakerBlockYear} setBlockYear={setSpeakerBlockYear}
             sortMode={speakerSortMode} setSortMode={setSpeakerSortMode}
             sortDir={speakerSortDir} setSortDir={setSpeakerSortDir}
-            deleteSpeaker={deleteSpeaker} bosquejoTitles={bosquejoTitles}
+            deleteSpeaker={deleteSpeaker} bosquejoTitles={bosquejoTitles} unavailableBosquejos={unavailableBosquejos}
           />
         ) : view === "bosquejos" ? (
           <BosquejosView events={events} raw={bosquejosRaw} setRaw={setBosquejosRaw} unavailable={unavailableBosquejos} setUnavailable={setUnavailableBosquejos}

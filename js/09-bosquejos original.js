@@ -20,15 +20,13 @@ const BOSQUEJO_LABELS = {
 };
 
 function analyzeBosquejo(num, events, unavailableSet) {
+  // Normalizar número a string sin espacios ni ceros a la izquierda innecesarios
   const cleanNum = String(num).trim();
-  const normalizedNum = !isNaN(Number(cleanNum)) ? String(Number(cleanNum)) : cleanNum;
 
-  const matches = events.filter((ev) => {
-    if (!ev.speechNumber) return false;
-    const evNum = String(ev.speechNumber).trim();
-    const evNorm = !isNaN(Number(evNum)) ? String(Number(evNum)) : evNum;
-    return evNum === cleanNum || evNorm === normalizedNum;
-  });
+  // Buscar eventos que hayan usado este bosquejo
+  const matches = events.filter((ev) => 
+    ev.speechNumber && String(ev.speechNumber).trim() === cleanNum
+  );
 
   const t = todayMidnight();
   const todayIso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
@@ -44,9 +42,11 @@ function analyzeBosquejo(num, events, unavailableSet) {
       sortKey: "0000-00-00" 
     };
   } else {
+    // Clasificar entre eventos pasados y futuros/programados
     const past = matches.filter((e) => e.date && e.date <= todayIso).sort((a, b) => b.date.localeCompare(a.date));
     const future = matches.filter((e) => e.date && e.date > todayIso).sort((a, b) => a.date.localeCompare(b.date));
-    
+
+    // Si hay un evento futuro, prima sobre el historial pasado para marcarlo como reciéntemente agendado
     const ref = future[0] || past[0];
     let status;
 
@@ -69,7 +69,8 @@ function analyzeBosquejo(num, events, unavailableSet) {
     };
   }
 
-  if (unavailableSet && (unavailableSet.has(cleanNum) || unavailableSet.has(normalizedNum))) {
+  // Comprobar si está marcado manualmente como no disponible
+  if (unavailableSet && (unavailableSet.has(cleanNum) || unavailableSet.has(Number(cleanNum)))) {
     base = { ...base, status: "unavailable" };
   }
 
@@ -97,48 +98,24 @@ function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable, bosqu
   const [dbSearch, setDbSearch] = useState("");
   const dbNums = useMemo(() => Array.from({ length: 194 }, (_, i) => String(i + 1)), []);
   const dbFiltered = dbSearch.trim() ? dbNums.filter((n) => n === dbSearch.trim() || (bosquejoTitles[n] || "").toLowerCase().includes(dbSearch.trim().toLowerCase())) : dbNums;
-  
-  const unavailableSet = useMemo(() => {
-    const set = new Set();
-    (unavailable || []).forEach((n) => {
-      const clean = String(n).trim();
-      set.add(clean);
-      if (!isNaN(Number(clean))) {
-        set.add(String(Number(clean)));
-      }
-    });
-    return set;
-  }, [unavailable]);
+  const unavailableSet = useMemo(() => new Set(unavailable.map(String)), [unavailable]);
 
   const addUnavailable = () => {
     const n = newUnavailable.trim();
     if (!n) return;
-    const clean = String(n).trim();
-    const normalized = !isNaN(Number(clean)) ? String(Number(clean)) : clean;
-    if (!unavailable.some((x) => {
-      const xClean = String(x).trim();
-      const xNorm = !isNaN(Number(xClean)) ? String(Number(xClean)) : xClean;
-      return xClean === clean || xNorm === normalized;
-    })) {
-      setUnavailable([...unavailable, normalized]);
-    }
+    if (!unavailable.includes(n)) setUnavailable([...unavailable, n]);
     setNewUnavailable("");
   };
 
-  const removeUnavailable = (n) => {
-    const clean = String(n).trim();
-    const normalized = !isNaN(Number(clean)) ? String(Number(clean)) : clean;
-    setUnavailable(unavailable.filter((x) => {
-      const xClean = String(x).trim();
-      const xNorm = !isNaN(Number(xClean)) ? String(Number(xClean)) : xClean;
-      return xClean !== clean && xNorm !== normalized;
-    }));
-  };
+  const removeUnavailable = (n) => setUnavailable(unavailable.filter((x) => String(x) !== String(n)));
 
   const results = useMemo(() => {
     const rawMatches = raw.match(/\d+/g) || [];
-    const unique = [...new Set(rawMatches.map((n) => String(Number(n))))];
-    return unique.map((n) => analyzeBosquejo(n, events, unavailableSet)).sort((a, b) => a.sortKey.localeCompare(b.sortKey));
+    const uniqueNums = [...new Set(rawMatches.map(n => String(Number(n))))];
+
+    return uniqueNums
+      .map((n) => analyzeBosquejo(n, events, unavailableSet))
+      .sort((a, b) => a.sortKey.localeCompare(b.sortKey));
   }, [raw, events, unavailableSet]);
 
   return React.createElement("div", null, 
@@ -179,9 +156,7 @@ function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable, bosqu
           React.createElement("input", {
             value: newUnavailable,
             onChange: (e) => setNewUnavailable(e.target.value.replace(/[^0-9]/g, "")),
-            onKeyDown: (e) => {
-              if (e.key === "Enter") addUnavailable();
-            },
+            onKeyDown: (e) => { if (e.key === "Enter") addUnavailable(); },
             inputMode: "numeric",
             placeholder: "Nº de bosquejo",
             className: "ipt text-xs"
@@ -201,7 +176,9 @@ function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable, bosqu
           r.status === "unavailable" ? React.createElement("div", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Marcado manualmente como no disponible.") : r.date ? React.createElement(React.Fragment, null, 
             React.createElement("div", { className: "text-xs", style: { color: COLORS.ink } }, r.speaker), 
             React.createElement("div", { className: "text-[11px]", style: { color: COLORS.inkSoft } }, formatDate(r.date), " · ", relativeAge(r.date)), 
-            React.createElement("div", { className: "text-[11px] flex items-center gap-1 mt-0.5", style: { color: COLORS.inkSoft } }, React.createElement(MapPin, { size: 10 }), " ", r.place)
+            React.createElement("div", { className: "text-[11px] flex items-center gap-1 mt-0.5", style: { color: COLORS.inkSoft } }, 
+              React.createElement(MapPin, { size: 10 }), " ", r.place
+            )
           ) : React.createElement("div", { className: "text-xs", style: { color: COLORS.inkSoft } }, "Ningún visitante lo ha dado todavía.")
         )
       )

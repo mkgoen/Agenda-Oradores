@@ -17,12 +17,11 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
-  // Autocompleta el título a partir de la base de datos de bosquejos
-  // cuando se escribe un número que ya tiene título asociado y el campo
-  // de título todavía está vacío (para no pisar un título ya escrito).
+  // Autocompleta el título a partir de la base de datos de bosquejos,
+  // sincronizado con cada cambio del número.
   useEffect(() => {
     const n = String(form.speechNumber || "").trim();
-    if (n && bosquejoTitles && bosquejoTitles[n] && !form.title) {
+    if (n && bosquejoTitles && bosquejoTitles[n]) {
       set("title", bosquejoTitles[n]);
     }
   }, [form.speechNumber]);

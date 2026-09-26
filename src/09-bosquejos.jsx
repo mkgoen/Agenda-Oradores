@@ -17,7 +17,11 @@ const BOSQUEJO_LABELS = {
 };
 
 function analyzeBosquejo(num, events, unavailableSet) {
-  const matches = events.filter(ev => ev.type === "visita" && String(ev.speechNumber || "").trim() === num);
+  // Busca en todos los tipos de evento (visita, salida, evento): un
+  // discurso puede haberse dado como visita a nuestro salón, como salida
+  // de un local a otro lugar, o como un evento genérico. Todos cuentan
+  // igual para saber cuándo se usó ese número por última vez.
+  const matches = events.filter(ev => String(ev.speechNumber || "").trim() === num);
   const t = todayMidnight();
   const todayIso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
 
@@ -85,7 +89,7 @@ function BosquejosView({ events, raw, setRaw, unavailable, setUnavailable, bosqu
 
   return (
     <div>
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-3 mb-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,33%)_320px] gap-3 mb-4">
         <div className="rounded-xl border p-4" style={{ borderColor: COLORS.line, background: COLORS.surface }}>
           <Field label="Números de discurso (separados por espacios o comas)">
             <textarea value={raw} onChange={e => setRaw(e.target.value)} rows={2} className="ipt"

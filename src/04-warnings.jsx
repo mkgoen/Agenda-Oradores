@@ -7,9 +7,12 @@ function computeWarnings(form, events, speakers, excludeId, unavailableBosquejos
     warnings.push({ key: "weekend", text: "Esa fecha no cae en sábado ni domingo. Aquí solo se programan discursos de fin de semana." });
   }
   if (form.type === "visita" && form.speechNumber && form.date) {
+    const t = todayMidnight();
+    const todayIso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
     const dup = events.find(ev =>
       ev.id !== excludeId && ev.type === "visita" &&
       String(ev.speechNumber).trim() === String(form.speechNumber).trim() &&
+      ev.date >= todayIso && // solo avisa si interfiere con un evento futuro, no con historial pasado
       Math.abs(new Date(ev.date) - new Date(form.date)) / 86400000 < 365
     );
     if (dup) {

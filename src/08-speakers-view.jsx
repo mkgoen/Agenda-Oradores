@@ -12,7 +12,7 @@
 function SpeakersView({
   speakers, setSpeakers, events, statusColor, onEventClick,
   search, setSearch, selectedId, setSelectedId, blockYear, setBlockYear,
-  deleteSpeaker, bosquejoTitles,
+  deleteSpeaker, bosquejoTitles, unavailableBosquejos,
 }) {
   const search_ = search.toLowerCase();
   const matches = (s) => s.name.toLowerCase().includes(search_) || (s.origin || "").toLowerCase().includes(search_);
@@ -122,7 +122,17 @@ function SpeakersView({
     <div className={"expand-wrap " + (panelExpanded ? "sd-expanded" : "sd-collapsed")} style={{ gridColumn: "1 / -1" }}>
       <div className="rounded-xl border p-5 space-y-4 mt-2.5" style={{ borderColor: COLORS.teal, background: COLORS.surface }}>
         <div className="flex items-start justify-between flex-wrap gap-y-2 gap-x-2">
-          <span className="text-sm font-semibold pt-1" style={{ fontFamily: "Fraunces, serif" }}>{panelSpeaker.name}</span>
+          <div className="flex items-center gap-3 flex-wrap pt-1">
+            <span className="text-sm font-semibold" style={{ fontFamily: "Fraunces, serif" }}>{panelSpeaker.name}</span>
+            {panelSpeaker.isLocal && (
+              <label className="flex items-center gap-1.5 text-xs cursor-pointer select-none" style={{ color: COLORS.inkSoft }}>
+                <input type="checkbox" checked={!!panelSpeaker.approved}
+                  onChange={e => updateSelected({ approved: e.target.checked })}
+                  style={{ accentColor: COLORS.teal, width: 14, height: 14 }} />
+                Orador aprobado
+              </label>
+            )}
+          </div>
           <div className="flex items-center gap-1.5 flex-shrink-0">
             <button onClick={handleInvite} className="px-2.5 py-1 rounded-md text-xs font-medium text-white" style={{ background: COLORS.teal }}>
               Invitar
@@ -157,14 +167,20 @@ function SpeakersView({
         <div>
           <span className="text-[11px] font-medium block mb-2" style={{ color: COLORS.inkSoft }}>Bosquejos que dispone</span>
           <div className="flex flex-wrap gap-1.5 mb-2">
-            {(panelSpeaker.bosquejos || []).map(n => (
-              <span key={n} className="flex items-center gap-1 text-[11px] font-mono pl-2.5 pr-1 py-1 rounded-full" style={{ background: COLORS.tealSoft, color: COLORS.teal }}>
-                {n}{bosquejoTitles?.[n] ? ` - ${bosquejoTitles[n]}` : ""}
-                <button onClick={() => removeBosquejoNum(n)} className="rounded-full p-0.5 hover:bg-black/10" title="Eliminar">
-                  <X size={10} />
-                </button>
-              </span>
-            ))}
+            {(panelSpeaker.bosquejos || []).map(n => {
+              const isUnavailable = unavailableBosquejos && unavailableBosquejos.includes(n);
+              const chipColor = isUnavailable ? "#5C3A21" : COLORS.teal;
+              return (
+                <span key={n} className="flex items-center gap-1 text-[11px] font-mono pl-2.5 pr-1 py-1 rounded-full"
+                  style={{ background: isUnavailable ? "#5C3A2122" : COLORS.tealSoft, color: chipColor }}
+                  title={isUnavailable ? "Marcado como no disponible" : ""}>
+                  {n}{bosquejoTitles?.[n] ? ` - ${bosquejoTitles[n]}` : ""}
+                  <button onClick={() => removeBosquejoNum(n)} className="rounded-full p-0.5 hover:bg-black/10" title="Eliminar">
+                    <X size={10} />
+                  </button>
+                </span>
+              );
+            })}
             {(panelSpeaker.bosquejos || []).length === 0 && (
               <span className="text-xs" style={{ color: COLORS.inkSoft }}>Sin bosquejos añadidos todavía.</span>
             )}
@@ -265,7 +281,7 @@ function SpeakersView({
       {/* ---------------- Locales ---------------- */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: COLORS.inkSoft }}>Locales ({localList.length})</span>
-        <button onClick={() => exportLocalsPdf(speakers.filter(s => s.isLocal))}
+        <button onClick={() => exportLocalsPdf(speakers.filter(s => s.isLocal && s.approved), bosquejoTitles, unavailableBosquejos)}
           className="text-xs px-3 py-1.5 rounded-lg border flex-shrink-0" style={{ borderColor: COLORS.line, color: COLORS.inkSoft }}>
           Generar PDF
         </button>

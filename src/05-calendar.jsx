@@ -12,29 +12,25 @@ function Pill({ ev, statusColor, onClick, unavailableBosquejos }) {
   const hasWarning = !!num && !!ev.date && ev.date >= todayIso && unavailableBosquejos && unavailableBosquejos.includes(num);
 
   const arrowBadge = (
-    <span className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 14, height: 14, border: `1.5px solid ${color}` }}>
-      <ArrowUpRight size={9} style={{ color }} />
+    <span className="rounded-full flex items-center justify-center flex-shrink-0" style={{ width: 14, height: 14, border: "1.5px solid #fff" }}>
+      <ArrowUpRight size={9} style={{ color: "#fff" }} />
     </span>
   );
 
   const leftCluster = (
     <span className="flex items-center gap-1.5 min-w-0">
-      {hasWarning && <AlertTriangle size={12} style={{ color: "#B9822E", flexShrink: 0 }} />}
-      {!isSalida && (isEvento ? <Circle size={9} style={{ color, flexShrink: 0, fill: color }} /> : <ArrowDownRight size={12} style={{ color, flexShrink: 0 }} />)}
-      <span className="text-[13px] truncate" style={{ color: COLORS.ink }}>{ev.speakerName || ev.title}</span>
+      {hasWarning && <AlertTriangle size={12} style={{ color: "#3A2600", flexShrink: 0 }} />}
+      {!isSalida && (isEvento ? <Circle size={9} style={{ color: "#fff", flexShrink: 0, fill: "#fff" }} /> : <ArrowDownRight size={12} style={{ color: "#fff", flexShrink: 0 }} />)}
+      <span className="text-[13px] truncate font-medium" style={{ color: "#fff" }}>{ev.speakerName || ev.title}</span>
     </span>
   );
 
   return (
-    <div className="relative group">
+    <div className="relative group h-full">
       <button
         onClick={onClick}
-        className={"w-full text-left px-2 py-1 rounded-md flex items-center hover:brightness-95 transition" + (isSalida ? " justify-between gap-1.5" : "")}
-        style={{
-          background: color + "1A",
-          borderLeft: isSalida ? "none" : `3px solid ${color}`,
-          borderRight: isSalida ? `3px solid ${color}` : "none",
-        }}
+        className={"w-full h-full text-left px-2 rounded-md flex items-center hover:brightness-110 transition" + (isSalida ? " justify-between gap-1.5" : "")}
+        style={{ background: color }}
       >
         {leftCluster}
         {isSalida && arrowBadge}
@@ -59,26 +55,41 @@ function MonthCard({ year, monthIndex, events, statusColor, onDayAdd, onEventCli
     if (!w) return <div />;
     const dayEvents = events.filter(ev => ev.date === w.iso);
     const isCurrentWeekend = highlight && (w.iso === highlight.sat || w.iso === highlight.sun);
+    const badgeColor = isCurrentWeekend ? COLORS.teal : COLORS.ink;
     return (
-      <div key={w.iso} className="hg-zoom rounded-lg p-1.5" style={{
-        background: isCurrentWeekend ? COLORS.tealSoft : COLORS.bg,
-        outline: isCurrentWeekend ? `1.5px solid ${COLORS.teal}` : "none",
-        outlineOffset: isCurrentWeekend ? "-1.5px" : "0",
-        minHeight: 54,
+      <div key={w.iso} className="hg-zoom rounded-lg flex overflow-hidden" style={{
+        background: COLORS.surface,
+        border: `1.5px solid ${isCurrentWeekend ? COLORS.teal : COLORS.line}`,
+        minHeight: 60,
       }}>
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[13px] font-medium flex items-center gap-1" style={{ color: isCurrentWeekend ? COLORS.teal : COLORS.inkSoft, fontFamily: "IBM Plex Mono, monospace" }}>
-            {DOW_SHORT[w.dow]} {w.day}
-            {isCurrentWeekend && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: COLORS.teal }} />}
+        {/* Fecha: día grande + mes, separados del contenido por una línea vertical */}
+        <div className="flex flex-col items-center justify-center flex-shrink-0 px-2"
+          style={{
+            borderRight: `1.5px solid ${isCurrentWeekend ? COLORS.teal : COLORS.line}`,
+            background: isCurrentWeekend ? COLORS.tealSoft : COLORS.bg,
+            minWidth: 44,
+          }}>
+          <span style={{ fontFamily: "Fraunces, serif", fontWeight: 700, fontSize: 20, lineHeight: 1, color: badgeColor }}>{w.day}</span>
+          <span style={{ fontFamily: "Fraunces, serif", fontWeight: 700, fontSize: 10, letterSpacing: "0.5px", color: isCurrentWeekend ? COLORS.teal : COLORS.inkSoft, marginTop: 2 }}>
+            {MONTHS[monthIndex].slice(0, 3).toUpperCase()}
           </span>
-          <button onClick={() => onDayAdd(w.iso)} className="opacity-40 hover:opacity-100 transition">
+        </div>
+
+        {/* Contenido: oradores del día (rellenan el div, repartido a partes
+            iguales si hay varios) + botón de añadir enmarcado en la esquina */}
+        <div className="flex-1 min-w-0 p-1.5 relative">
+          <button onClick={() => onDayAdd(w.iso)}
+            className="hg-zoom absolute top-1 right-1 flex items-center justify-center rounded-md z-10"
+            style={{ width: 18, height: 18, background: COLORS.bg }}>
             <Plus size={12} style={{ color: COLORS.teal }} />
           </button>
-        </div>
-        <div className="space-y-1">
-          {dayEvents.map(ev => (
-            <Pill key={ev.id} ev={ev} statusColor={statusColor} onClick={() => onEventClick(ev)} unavailableBosquejos={unavailableBosquejos} />
-          ))}
+          <div className="flex flex-col gap-1 h-full">
+            {dayEvents.map(ev => (
+              <div key={ev.id} className="flex-1 min-h-0">
+                <Pill ev={ev} statusColor={statusColor} onClick={() => onEventClick(ev)} unavailableBosquejos={unavailableBosquejos} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
