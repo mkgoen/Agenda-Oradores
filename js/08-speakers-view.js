@@ -183,6 +183,15 @@ function SpeakersView({
       placeholder: "Buscar por nombre o lugar\u2026",
       className: "bg-transparent text-sm outline-none flex-1"
     }
+  ), search && /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      type: "button",
+      onClick: () => setSearch(""),
+      className: "p-0.5 rounded-full hover:bg-black/5 flex items-center justify-center",
+      title: "Limpiar búsqueda"
+    },
+    /* @__PURE__ */ React.createElement(X, { size: 14, style: { color: COLORS.inkSoft } })
   )), /* @__PURE__ */ React.createElement("button", { onClick: () => setShowAddModal(true), className: "flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-sm font-medium text-white flex-shrink-0", style: { background: COLORS.teal } }, /* @__PURE__ */ React.createElement(Plus, { size: 15 }), " A\xF1adir orador")), /* @__PURE__ */ React.createElement("div", { className: "flex items-center justify-between mb-2" }, /* @__PURE__ */ React.createElement("span", { className: "text-[11px] font-semibold uppercase tracking-wide", style: { color: COLORS.inkSoft } }, "Locales (", localList.length, ")"), /* @__PURE__ */ React.createElement(
     "button",
     {

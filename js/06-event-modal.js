@@ -8,6 +8,7 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
     coordinator: "",
     type: defaultType || "visita",
     speakerName: "",
+    eventTitle: "",
     status: statuses[0].name,
     notes: ""
   });
@@ -66,7 +67,7 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
       }
     },
     t === "visita" ? "Visita" : t === "salida" ? "Salida" : "Evento"
-  ))), /* @__PURE__ */ React.createElement(Field, { label: "Fecha" }, /* @__PURE__ */ React.createElement("input", { type: "date", value: form.date, onChange: (e) => set("date", e.target.value), className: "ipt" })), form.type === "evento" ? /* @__PURE__ */ React.createElement(Field, { label: "Nombre" }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
+  ))), /* @__PURE__ */ React.createElement(Field, { label: "Fecha" }, /* @__PURE__ */ React.createElement("input", { type: "date", value: form.date, onChange: (e) => set("date", e.target.value), className: "ipt" })), form.type === "evento" ? /* @__PURE__ */ React.createElement("div", { className: "space-y-3" }, /* @__PURE__ */ React.createElement(Field, { label: "Nombre del evento" }, /* @__PURE__ */ React.createElement("input", { value: form.eventTitle || "", onChange: (e) => set("eventTitle", e.target.value), className: "ipt", placeholder: "Nombre del evento" })), /* @__PURE__ */ React.createElement(Field, { label: "Nombre del orador" }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       value: form.speakerName,
@@ -104,7 +105,7 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
         }
       },
       className: "ipt",
-      placeholder: "Nombre",
+      placeholder: "Nombre del orador",
       autoComplete: "off"
     }
   ), speakerDropdownOpen && suggestions.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute left-0 right-0 mt-1 rounded-lg border shadow-lg overflow-hidden z-20", style: { borderColor: COLORS.line, background: COLORS.surface } }, suggestions.map((s, i) => /* @__PURE__ */ React.createElement(
@@ -124,7 +125,7 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
     s.name,
     " ",
     /* @__PURE__ */ React.createElement("span", { style: { color: COLORS.inkSoft } }, "\xB7 ", s.origin)
-  ))))) : /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement(Field, { label: "Orador" }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
+  )))))) : /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement(Field, { label: "Orador" }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
     "input",
     {
       value: form.speakerName,

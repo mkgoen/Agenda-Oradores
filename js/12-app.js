@@ -106,10 +106,14 @@ function App() {
   const openNew = (prefillDate, defaultType) => setModal({ initial: null, prefillDate, defaultType: defaultType || (view === "salidas" ? "salida" : "visita") });
   const openEdit = (ev) => setModal({ initial: ev });
   const saveEvent = (form) => {
-    let speaker = speakers.find((s) => s.name.trim().toLowerCase() === form.speakerName.trim().toLowerCase());
+    // Para eventos de tipo "evento", el speakerName es el nombre del orador
+    // (distinto del nombre del evento, que va en eventTitle).
+    // Solo se vincula/crea un orador si hay speakerName.
+    const speakerNameForLookup = (form.speakerName || "").trim();
+    let speaker = speakerNameForLookup ? speakers.find((s) => s.name.trim().toLowerCase() === speakerNameForLookup.toLowerCase()) : null;
     let nextSpeakers = speakers;
-    if (!speaker && form.speakerName.trim()) {
-      speaker = { id: uid(), name: form.speakerName.trim(), phone: form.phone, origin: form.type === "visita" ? form.place : "Local", isLocal: form.type === "salida", blockedMonths: [] };
+    if (!speaker && speakerNameForLookup) {
+      speaker = { id: uid(), name: speakerNameForLookup, phone: form.phone, origin: form.type === "visita" ? form.place : "Local", isLocal: form.type === "salida", blockedMonths: [] };
       nextSpeakers = [...speakers, speaker];
     }
     if (speaker && speaker.isLocal && form.date) {
