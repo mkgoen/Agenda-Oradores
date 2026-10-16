@@ -102,7 +102,7 @@ function useYearSwipe(setYear) {
 }
 function YearView({ year, setYear, type, events, statusColor, onDayAdd, onEventClick, weekendFilter, setWeekendFilter, unavailableBosquejos }) {
   const filtered = useMemo(() => events.filter((ev) => {
-    const matchesType = type === "all" ? true : type === "visita" ? ev.type === "visita" || ev.type === "evento" : ev.type === type;
+    const matchesType = type === "all" ? true : (type === "visita" || type === "salida") ? ev.type === type || ev.type === "evento" : ev.type === type;
     return matchesType && ev.date?.startsWith(String(year));
   }), [events, type, year]);
   const highlight = useMemo(() => getCurrentOrNextWeekend(), []);
