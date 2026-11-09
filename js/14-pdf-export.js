@@ -32,7 +32,7 @@ function exportLocalsPdf(localSpeakers, bosquejoTitles, unavailableBosquejos) {
     doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(17);
-    doc.text("Oradores aprobados - Torrevieja - Puerto", marginX, 34);
+    doc.text("Oradores aprobados: Torrevieja Puerto", marginX, 34);
     doc.setFont("helvetica", "normal");
     doc.setFontSize(9.5);
     doc.text(`Disponibilidad y bosquejos \xB7 Generado el ${today.toLocaleDateString("es-ES")}`, marginX, 53);
