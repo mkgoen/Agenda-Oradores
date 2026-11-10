@@ -16,9 +16,28 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [speakerDropdownOpen, setSpeakerDropdownOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const [placeDropdownOpen, setPlaceDropdownOpen] = useState(false);
+  const [placeHighlightIndex, setPlaceHighlightIndex] = useState(-1);
   const warnings = useMemo(() => computeWarnings(form, events, speakers, initial?.id, unavailableBosquejos), [form, events, speakers, initial, unavailableBosquejos]);
   const matchingSpeakers = speakers.filter((s) => s.name.toLowerCase().includes((form.speakerName || "").toLowerCase()) && form.speakerName);
   const suggestions = matchingSpeakers.slice(0, 8);
+  const allPlaces = useMemo(() => {
+    const map = new Map();
+    const add = (str) => {
+      const trimmed = (str || "").trim();
+      if (!trimmed) return;
+      const lower = trimmed.toLowerCase();
+      if (lower === "desconocido" || lower === "local") return;
+      if (!map.has(lower) || (trimmed !== lower && map.get(lower) === lower)) {
+        map.set(lower, trimmed);
+      }
+    };
+    (speakers || []).forEach((s) => add(s.origin));
+    (events || []).forEach((ev) => add(ev.place));
+    return Array.from(map.values()).sort((a, b) => a.localeCompare(b, "es"));
+  }, [speakers, events]);
+  const matchingPlaces = allPlaces.filter((p) => (form.place || "").trim() && p.toLowerCase().includes((form.place || "").trim().toLowerCase()));
+  const placeSuggestions = matchingPlaces.slice(0, 8);
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
   useEffect(() => {
     const n = String(form.speechNumber || "").trim();
@@ -183,7 +202,63 @@ function EventModal({ initial, prefillDate, defaultType, speakers, events, statu
     s.name,
     " ",
     /* @__PURE__ */ React.createElement("span", { style: { color: COLORS.inkSoft } }, "\xB7 ", s.origin)
-  ))))), /* @__PURE__ */ React.createElement(Field, { label: form.type === "visita" ? "Lugar de origen del orador" : "Lugar de destino" }, /* @__PURE__ */ React.createElement("input", { value: form.place, onChange: (e) => set("place", e.target.value), className: "ipt", placeholder: "Congregaci\xF3n / sal\xF3n" }))), /* @__PURE__ */ React.createElement(Field, { label: "T\xEDtulo del discurso" }, /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: (e) => set("title", e.target.value), className: "ipt" })), form.type !== "evento" && /* @__PURE__ */ React.createElement(Field, { label: "N\xBA de discurso" }, /* @__PURE__ */ React.createElement("input", { value: form.speechNumber, onChange: (e) => set("speechNumber", e.target.value), className: "ipt" })), form.type !== "evento" && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement(Field, { label: "Tel\xE9fono" }, /* @__PURE__ */ React.createElement("input", { value: form.phone, onChange: (e) => set("phone", e.target.value), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Coordinador" }, /* @__PURE__ */ React.createElement("input", { value: form.coordinator, onChange: (e) => set("coordinator", e.target.value), className: "ipt", placeholder: "Solo si aplica" }))), /* @__PURE__ */ React.createElement(Field, { label: "Estado" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("select", { value: form.status, onChange: (e) => set("status", e.target.value), className: "ipt flex-1" }, statuses.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.name, value: s.name }, s.name)))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5 mt-2" }, statuses.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.name, className: "flex items-center gap-1 text-[10px] pl-2 pr-1 py-1 rounded-full", style: { background: s.color + "1F", color: s.color } }, s.name, /* @__PURE__ */ React.createElement(
+  ))))), /* @__PURE__ */ React.createElement(Field, { label: form.type === "visita" ? "Lugar de origen del orador" : "Lugar de destino" }, /* @__PURE__ */ React.createElement("div", { className: "relative" }, /* @__PURE__ */ React.createElement(
+    "input",
+    {
+      value: form.place,
+      onChange: (e) => {
+        set("place", e.target.value);
+        setPlaceDropdownOpen(true);
+        setPlaceHighlightIndex(-1);
+      },
+      onFocus: () => {
+        if (placeSuggestions.length > 0) setPlaceDropdownOpen(true);
+      },
+      onBlur: () => setTimeout(() => setPlaceDropdownOpen(false), 120),
+      onKeyDown: (e) => {
+        if (!placeDropdownOpen && (e.key === "ArrowDown" || e.key === "ArrowUp") && placeSuggestions.length > 0) {
+          e.preventDefault();
+          setPlaceDropdownOpen(true);
+          setPlaceHighlightIndex(0);
+          return;
+        }
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setPlaceHighlightIndex((i) => Math.min(i + 1, placeSuggestions.length - 1));
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setPlaceHighlightIndex((i) => Math.max(i - 1, 0));
+        } else if (e.key === "Enter") {
+          if (placeDropdownOpen && placeHighlightIndex >= 0 && placeSuggestions[placeHighlightIndex]) {
+            e.preventDefault();
+            set("place", placeSuggestions[placeHighlightIndex]);
+            setPlaceDropdownOpen(false);
+            setPlaceHighlightIndex(-1);
+          }
+        } else if (e.key === "Escape") {
+          setPlaceDropdownOpen(false);
+        }
+      },
+      className: "ipt",
+      placeholder: "Congregaci\xF3n / sal\xF3n",
+      autoComplete: "off"
+    }
+  ), placeDropdownOpen && placeSuggestions.length > 0 && /* @__PURE__ */ React.createElement("div", { className: "absolute left-0 right-0 mt-1 rounded-lg border shadow-lg overflow-hidden z-20", style: { borderColor: COLORS.line, background: COLORS.surface } }, placeSuggestions.map((p, i) => /* @__PURE__ */ React.createElement(
+    "button",
+    {
+      key: p,
+      type: "button",
+      onMouseDown: (e) => e.preventDefault(),
+      onClick: () => {
+        set("place", p);
+        setPlaceDropdownOpen(false);
+        setPlaceHighlightIndex(-1);
+      },
+      className: "w-full text-left px-3 py-1.5 text-xs",
+      style: { background: i === placeHighlightIndex ? COLORS.tealSoft : "transparent", color: COLORS.ink }
+    },
+    p
+  )))))), /* @__PURE__ */ React.createElement(Field, { label: "T\xEDtulo del discurso" }, /* @__PURE__ */ React.createElement("input", { value: form.title, onChange: (e) => set("title", e.target.value), className: "ipt" })), form.type !== "evento" && /* @__PURE__ */ React.createElement(Field, { label: "N\xBA de discurso" }, /* @__PURE__ */ React.createElement("input", { value: form.speechNumber, onChange: (e) => set("speechNumber", e.target.value), className: "ipt" })), form.type !== "evento" && /* @__PURE__ */ React.createElement("div", { className: "grid grid-cols-2 gap-3" }, /* @__PURE__ */ React.createElement(Field, { label: "Tel\xE9fono" }, /* @__PURE__ */ React.createElement("input", { value: form.phone, onChange: (e) => set("phone", e.target.value), className: "ipt" })), /* @__PURE__ */ React.createElement(Field, { label: "Coordinador" }, /* @__PURE__ */ React.createElement("input", { value: form.coordinator, onChange: (e) => set("coordinator", e.target.value), className: "ipt", placeholder: "Solo si aplica" }))), /* @__PURE__ */ React.createElement(Field, { label: "Estado" }, /* @__PURE__ */ React.createElement("div", { className: "flex gap-2 flex-wrap" }, /* @__PURE__ */ React.createElement("select", { value: form.status, onChange: (e) => set("status", e.target.value), className: "ipt flex-1" }, statuses.map((s) => /* @__PURE__ */ React.createElement("option", { key: s.name, value: s.name }, s.name)))), /* @__PURE__ */ React.createElement("div", { className: "flex flex-wrap gap-1.5 mt-2" }, statuses.map((s) => /* @__PURE__ */ React.createElement("span", { key: s.name, className: "flex items-center gap-1 text-[10px] pl-2 pr-1 py-1 rounded-full", style: { background: s.color + "1F", color: s.color } }, s.name, /* @__PURE__ */ React.createElement(
     "button",
     {
       onClick: () => handleDeleteStatus(s.name),

@@ -16,7 +16,7 @@ function App() {
   const [events, setEvents] = useState([]);
   const [statuses, setStatuses] = useState(DEFAULT_STATUSES);
   const [reminders, setReminders] = useState([]);
-  const [view, setView] = useState("conjunta");
+  const [view, setView] = useState("visitas");
   const [year, setYear] = useState((/* @__PURE__ */ new Date()).getFullYear());
   const [weekendFilter, setWeekendFilter] = useState("both");
   const [modal, setModal] = useState(null);
